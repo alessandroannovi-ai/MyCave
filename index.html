@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<title>MyCave — Cantina Marmoreto</title>
+
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#0d0d0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MyCave">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="icon" href="/icons/icon-192.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --bg:#0d0d0f;
+    --bg-raised:#17161a;
+    --bg-card:#1c1b1f;
+    --gold:#c9a84c;
+    --gold-dim:#8f7a3f;
+    --ruby:#9b2335;
+    --green:#4f7a52;
+    --cream:#f0ebe2;
+    --cream-dim:#9a958c;
+    --line:#2a292d;
+    --sheet-radius:22px;
+    --safe-top:env(safe-area-inset-top,0px);
+    --safe-bottom:env(safe-area-inset-bottom,0px);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;height:100%;background:var(--bg);}
+  body{
+    font-family:'Outfit',sans-serif;
+    color:var(--cream);
+    overscroll-behavior-y:none;
+    -webkit-user-select:none;
+    user-select:none;
+  }
+  input,textarea{-webkit-user-select:text;user-select:text;}
+  h1,h2,h3,.serif{font-family:'Cormorant Garamond',serif;}
+  ::-webkit-scrollbar{display:none;}
+
+  #app{display:flex;flex-direction:column;height:100vh;height:100dvh;}
+
+  /* HEADER */
+  header{
+    padding:calc(var(--safe-top) + 14px) 20px 10px;
+    display:flex;align-items:baseline;justify-content:space-between;
+    flex-shrink:0;
+  }
+  header h1{font-size:28px;font-weight:600;margin:0;color:var(--cream);letter-spacing:.3px;}
+  header .subtitle{font-size:11px;color:var(--gold-dim);text-transform:uppercase;letter-spacing:1.5px;}
+  #search-btn{background:none;border:none;color:var(--gold);font-size:20px;padding:6px;}
+  #settings-btn{background:none;border:none;color:var(--cream-dim);font-size:18px;padding:6px;}
+
+  /* TABS */
+  #tabs{
+    display:flex;gap:6px;overflow-x:auto;padding:4px 16px 12px;flex-shrink:0;
+    scroll-snap-type:x proximity;
+  }
+  .tab{
+    flex-shrink:0;padding:8px 14px;border-radius:20px;font-size:13px;
+    color:var(--cream-dim);background:var(--bg-raised);border:1px solid transparent;
+    scroll-snap-align:start;font-weight:500;
+  }
+  .tab.active{background:rgba(201,168,76,.14);color:var(--gold);border-color:rgba(201,168,76,.4);}
+
+  /* SEARCH */
+  #search-bar{padding:0 20px 10px;flex-shrink:0;display:none;}
+  #search-bar.open{display:block;}
+  #search-bar input{
+    width:100%;padding:11px 14px;border-radius:12px;border:1px solid var(--line);
+    background:var(--bg-raised);color:var(--cream);font-family:'Outfit';font-size:15px;
+  }
+  #filters{display:flex;gap:8px;padding:0 20px 10px;flex-shrink:0;overflow-x:auto;}
+  .chip{flex-shrink:0;padding:6px 12px;border-radius:14px;font-size:12px;background:var(--bg-raised);color:var(--cream-dim);border:1px solid var(--line);}
+  .chip.active{background:var(--ruby);color:var(--cream);border-color:var(--ruby);}
+
+  /* MAIN SCROLL AREA */
+  main{flex:1;overflow-y:auto;padding:4px 20px calc(100px + var(--safe-bottom));}
+
+  .empty-state{text-align:center;padding:60px 20px;color:var(--cream-dim);}
+  .empty-state .icon{font-size:34px;margin-bottom:10px;opacity:.5;}
+  .empty-state p{font-size:14px;line-height:1.5;}
+
+  /* WINE CARD */
+  .region-label{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--gold-dim);margin:18px 0 8px;}
+  .region-label:first-child{margin-top:6px;}
+  .card{
+    background:var(--bg-card);border:1px solid var(--line);border-radius:16px;
+    padding:14px 16px;margin-bottom:10px;display:flex;gap:12px;align-items:center;
+  }
+  .card .prestige{font-size:16px;color:var(--gold);width:18px;text-align:center;flex-shrink:0;}
+  .card .info{flex:1;min-width:0;}
+  .card .name{font-size:16.5px;font-weight:500;font-family:'Cormorant Garamond';line-height:1.25;}
+  .card .meta{font-size:12px;color:var(--cream-dim);margin-top:2px;}
+  .card .badge{
+    font-size:10px;padding:3px 8px;border-radius:8px;font-weight:600;
+    text-transform:uppercase;letter-spacing:.4px;flex-shrink:0;white-space:nowrap;
+  }
+  .badge.alta{background:rgba(155,35,53,.18);color:#e5677a;}
+  .badge.media{background:rgba(201,168,76,.16);color:var(--gold);}
+  .badge.conservazione{background:rgba(79,122,82,.2);color:#7dbf82;}
+
+  /* FAB */
+  #fab{
+    position:fixed;right:20px;bottom:calc(90px + var(--safe-bottom));
+    width:56px;height:56px;border-radius:50%;background:var(--gold);color:var(--bg);
+    font-size:26px;border:none;box-shadow:0 6px 20px rgba(0,0,0,.4);
+    display:flex;align-items:center;justify-content:center;z-index:20;
+  }
+
+  /* BOTTOM NAV (compact, for main functional groups) */
+  #bottomnav{
+    position:fixed;left:0;right:0;bottom:0;display:flex;
+    background:rgba(13,13,15,.92);backdrop-filter:blur(14px);
+    border-top:1px solid var(--line);padding:8px 8px calc(8px + var(--safe-bottom));
+    z-index:15;
+  }
+  #bottomnav button{
+    flex:1;background:none;border:none;color:var(--cream-dim);font-family:'Outfit';
+    font-size:10.5px;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px;
+  }
+  #bottomnav button .ic{font-size:19px;}
+  #bottomnav button.active{color:var(--gold);}
+
+  /* BOTTOM SHEET */
+  .sheet-overlay{
+    position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:50;
+    display:none;align-items:flex-end;
+  }
+  .sheet-overlay.open{display:flex;}
+  .sheet{
+    background:var(--bg-raised);width:100%;max-height:88vh;
+    border-radius:var(--sheet-radius) var(--sheet-radius) 0 0;
+    padding:10px 20px calc(24px + var(--safe-bottom));overflow-y:auto;
+    animation:slideup .25s ease-out;
+  }
+  @keyframes slideup{from{transform:translateY(30px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+  .sheet-handle{width:36px;height:4px;background:var(--line);border-radius:3px;margin:6px auto 16px;}
+  .sheet h2{font-size:24px;margin:0 0 2px;font-weight:600;}
+  .sheet .sheet-sub{font-size:13px;color:var(--gold-dim);margin-bottom:16px;}
+  .sheet-close{position:absolute;top:calc(var(--safe-top) + 14px);right:20px;background:var(--bg-card);border:none;color:var(--cream-dim);width:30px;height:30px;border-radius:50%;font-size:15px;}
+
+  .field-row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px;}
+  .field-row .label{color:var(--cream-dim);}
+  .field-row .val{text-align:right;max-width:60%;}
+
+  .ai-box{background:var(--bg-card);border:1px solid var(--line);border-radius:14px;padding:14px;margin:16px 0;font-size:14px;line-height:1.55;color:var(--cream);}
+  .ai-box .ai-tag{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:6px;display:block;}
+  .ai-loading{color:var(--cream-dim);font-style:italic;font-size:13px;}
+
+  .stars{display:flex;gap:6px;margin:10px 0;}
+  .stars span{font-size:24px;color:var(--line);}
+  .stars span.on{color:var(--gold);}
+
+  .btn{
+    width:100%;padding:13px;border-radius:12px;border:none;font-family:'Outfit';
+    font-size:14.5px;font-weight:600;margin-top:10px;
+  }
+  .btn-primary{background:var(--gold);color:var(--bg);}
+  .btn-secondary{background:var(--bg-card);color:var(--cream);border:1px solid var(--line);}
+  .btn-danger{background:rgba(155,35,53,.15);color:#e5677a;border:1px solid rgba(155,35,53,.3);}
+  .btn-row{display:flex;gap:8px;}
+  .btn-row .btn{margin-top:10px;}
+
+  label.formlabel{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--gold-dim);display:block;margin:14px 0 6px;}
+  input.forminput, select.forminput, textarea.forminput{
+    width:100%;padding:11px 13px;border-radius:10px;border:1px solid var(--line);
+    background:var(--bg-card);color:var(--cream);font-family:'Outfit';font-size:14.5px;
+  }
+  textarea.forminput{resize:none;min-height:70px;}
+
+  .photo-row{display:flex;gap:8px;margin-top:10px;}
+  .photo-slot{
+    flex:1;aspect-ratio:3/4;border-radius:12px;border:1.5px dashed var(--line);
+    display:flex;align-items:center;justify-content:center;color:var(--cream-dim);
+    font-size:12px;position:relative;overflow:hidden;background:var(--bg-card);
+  }
+  .photo-slot img{width:100%;height:100%;object-fit:cover;}
+  .photo-slot input[type=file]{position:absolute;inset:0;opacity:0;}
+
+  /* CHAT (sommelier) */
+  #chat-log{display:flex;flex-direction:column;gap:10px;margin-bottom:12px;max-height:50vh;overflow-y:auto;}
+  .msg{max-width:82%;padding:10px 13px;border-radius:14px;font-size:14px;line-height:1.5;}
+  .msg.user{align-self:flex-end;background:var(--gold);color:var(--bg);border-bottom-right-radius:4px;}
+  .msg.ai{align-self:flex-start;background:var(--bg-card);border:1px solid var(--line);border-bottom-left-radius:4px;white-space:pre-wrap;}
+  #chat-input-row{display:flex;gap:8px;}
+  #chat-input-row input{flex:1;}
+  #chat-input-row button{width:46px;flex-shrink:0;border-radius:10px;background:var(--gold);border:none;color:var(--bg);font-size:16px;}
+
+  /* STATISTICHE */
+  .stat-block{background:var(--bg-card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:12px;}
+  .stat-title{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--gold-dim);margin-bottom:12px;}
+  .stat-num{font-family:'Cormorant Garamond';font-size:38px;color:var(--cream);line-height:1;}
+  .bar-row{display:flex;align-items:center;gap:10px;margin-bottom:9px;font-size:12.5px;}
+  .bar-row .bar-label{width:96px;flex-shrink:0;color:var(--cream-dim);text-transform:capitalize;}
+  .bar-track{flex:1;height:8px;background:var(--bg-raised);border-radius:4px;overflow:hidden;}
+  .bar-fill{height:100%;background:var(--gold);border-radius:4px;}
+  .bar-row .bar-num{width:22px;text-align:right;color:var(--cream-dim);}
+
+  .toast{
+    position:fixed;bottom:calc(100px + var(--safe-bottom));left:50%;transform:translateX(-50%);
+    background:var(--cream);color:var(--bg);padding:10px 18px;border-radius:20px;font-size:13px;
+    z-index:100;font-weight:500;opacity:0;transition:opacity .2s;pointer-events:none;
+  }
+  .toast.show{opacity:1;}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <header>
+    <div>
+      <div class="subtitle" id="header-sub">Cantina Marmoreto</div>
+      <h1 id="header-title">MyCave</h1>
+    </div>
+    <div style="display:flex;gap:4px;">
+      <button id="search-btn" onclick="toggleSearch()">⌕</button>
+      <button id="settings-btn" onclick="openSettings()">⚙</button>
+    </div>
+  </header>
+
+  <div id="tabs"></div>
+  <div id="search-bar"><input id="search-input" placeholder="Cerca per nome, produttore, annata…" oninput="render()"></div>
+  <div id="filters"></div>
+
+  <main id="main"></main>
+
+  <button id="fab" onclick="openAddSheet()">＋</button>
+
+  <div id="bottomnav">
+    <button data-tab="rosso" class="active" onclick="setTab('rosso')"><span class="ic">◆</span>Rossi</button>
+    <button data-tab="bianco" onclick="setTab('bianco')"><span class="ic">◇</span>Bianchi</button>
+    <button data-tab="rosato" onclick="setTab('rosato')"><span class="ic">●</span>Rosati</button>
+    <button data-tab="bollicina" onclick="setTab('bollicina')"><span class="ic">✦</span>Bolle</button>
+    <button data-tab="abbina" onclick="setTab('abbina')"><span class="ic">⋈</span>Abbina</button>
+    <button data-tab="stats" onclick="setTab('stats')"><span class="ic">▤</span>Stats</button>
+    <button data-tab="consumati" onclick="setTab('consumati')"><span class="ic">⟲</span>Storico</button>
+  </div>
+</div>
+
+<!-- PIN GATE -->
+<div class="sheet-overlay" id="pin-gate" style="align-items:center;">
+  <div class="sheet" style="border-radius:22px; max-width:340px; margin:0 20px; text-align:center;">
+    <h2 class="serif" style="font-size:26px;">MyCave</h2>
+    <div class="sheet-sub">Inserisci il PIN per accedere alla cantina</div>
+    <input class="forminput" id="pin-input" type="password" inputmode="numeric" placeholder="PIN" style="text-align:center; letter-spacing:4px; font-size:20px;" onkeydown="if(event.key==='Enter') submitPin()">
+    <div id="pin-error" style="color:#e5677a; font-size:12px; margin-top:8px; min-height:16px;"></div>
+    <button class="btn btn-primary" onclick="submitPin()">Entra</button>
+  </div>
+</div>
+
+<!-- DETAIL SHEET -->
+<div class="sheet-overlay" id="detail-overlay" onclick="if(event.target===this) closeSheet('detail-overlay')">
+  <div class="sheet" style="position:relative;">
+    <button class="sheet-close" onclick="closeSheet('detail-overlay')">✕</button>
+    <div class="sheet-handle"></div>
+    <div id="detail-content"></div>
+  </div>
+</div>
+
+<!-- ADD SHEET -->
+<div class="sheet-overlay" id="add-overlay" onclick="if(event.target===this) closeSheet('add-overlay')">
+  <div class="sheet" style="position:relative;">
+    <button class="sheet-close" onclick="closeSheet('add-overlay')">✕</button>
+    <div class="sheet-handle"></div>
+    <h2>Nuova bottiglia</h2>
+    <div class="sheet-sub">Compila a mano o scansiona l'etichetta</div>
+
+    <div class="photo-row">
+      <div class="photo-slot" id="photo-front">
+        <span id="photo-front-label">Fronte</span>
+        <input type="file" accept="image/*" capture="environment" onchange="handlePhoto(event,'front')">
+      </div>
+      <div class="photo-slot" id="photo-back">
+        <span id="photo-back-label">Retro</span>
+        <input type="file" accept="image/*" capture="environment" onchange="handlePhoto(event,'back')">
+      </div>
+    </div>
+    <button class="btn btn-secondary" id="recognize-btn" onclick="recognizeLabel()" style="display:none;">Riconosci etichetta con AI</button>
+    <div id="recognize-status" class="ai-loading" style="display:none;margin-top:8px;">Lettura etichetta in corso…</div>
+
+    <label class="formlabel">Nome</label>
+    <input class="forminput" id="f-name">
+    <label class="formlabel">Produttore</label>
+    <input class="forminput" id="f-producer">
+    <label class="formlabel">Etichetta / linea</label>
+    <input class="forminput" id="f-label">
+    <label class="formlabel">Annata</label>
+    <input class="forminput" id="f-year" inputmode="numeric" placeholder="es. 2021 — lascia vuoto se NV">
+    <label class="formlabel">Colore</label>
+    <select class="forminput" id="f-color">
+      <option value="rosso">Rosso</option>
+      <option value="bianco">Bianco</option>
+      <option value="rosato">Rosato</option>
+      <option value="bollicina">Bollicina</option>
+    </select>
+    <label class="formlabel">Regione</label>
+    <input class="forminput" id="f-region" placeholder="es. toscana">
+    <label class="formlabel">Tipologia</label>
+    <input class="forminput" id="f-type" placeholder="es. Chianti Classico">
+    <label class="formlabel">Priorità</label>
+    <select class="forminput" id="f-priority">
+      <option value="media">Finestra ottimale</option>
+      <option value="alta">Bevi presto</option>
+      <option value="conservazione">Da conservare</option>
+    </select>
+    <label class="formlabel">Prestigio</label>
+    <select class="forminput" id="f-prestige">
+      <option value="buono">● Buono</option>
+      <option value="pregiato">◆ Pregiato</option>
+      <option value="icona">✦ Icona</option>
+      <option value="quotidiano">○ Quotidiano</option>
+    </select>
+    <label class="formlabel">Temperatura di servizio</label>
+    <input class="forminput" id="f-temp" placeholder="es. 16–18°C">
+    <label class="formlabel">Note</label>
+    <textarea class="forminput" id="f-notes"></textarea>
+
+    <button class="btn btn-primary" onclick="saveNewWine()">Aggiungi alla cantina</button>
+  </div>
+</div>
+
+<!-- SOMMELIER SHEET -->
+<div class="sheet-overlay" id="sommelier-overlay" onclick="if(event.target===this) closeSheet('sommelier-overlay')">
+  <div class="sheet" style="position:relative;">
+    <button class="sheet-close" onclick="closeSheet('sommelier-overlay')">✕</button>
+    <div class="sheet-handle"></div>
+    <h2>Sommelier</h2>
+    <div class="sheet-sub" id="sommelier-context">Chiedi quello che vuoi sulla cantina</div>
+    <div id="chat-log"></div>
+    <div id="chat-input-row">
+      <input class="forminput" id="chat-input" placeholder="Scrivi una domanda…" onkeydown="if(event.key==='Enter') sendChat()">
+      <button onclick="sendChat()">↑</button>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS SHEET -->
+<div class="sheet-overlay" id="settings-overlay" onclick="if(event.target===this) closeSheet('settings-overlay')">
+  <div class="sheet" style="position:relative;">
+    <button class="sheet-close" onclick="closeSheet('settings-overlay')">✕</button>
+    <div class="sheet-handle"></div>
+    <h2>Impostazioni</h2>
+    <div class="sheet-sub" id="sync-status">—</div>
+
+    <label class="formlabel">Backup</label>
+    <div class="field-row"><span class="label">Bottiglie totali</span><span class="val" id="settings-count">—</span></div>
+    <button class="btn btn-primary" onclick="exportBackup()">Esporta backup (JSON)</button>
+    <button class="btn btn-secondary" id="import-btn" style="position:relative;overflow:hidden;">
+      Importa backup
+      <input type="file" accept="application/json" onchange="importBackup(event)" style="position:absolute;inset:0;opacity:0;">
+    </button>
+    <div style="font-size:12px;color:var(--cream-dim);margin-top:10px;line-height:1.5;">
+      I dati sono salvati solo su questo iPhone (localStorage). Fai un backup ogni tanto,
+      soprattutto prima di aggiornare l'app o svuotare i dati di Safari.
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================
+   MYCAVE — stato, dati, rendering, AI
+   ========================================================= */
+
+const LS_KEY = 'mycave_v1';
+
+/* --- Cloud sync ---
+   I dati vivono in Netlify Blobs, richiamati tramite /.netlify/functions/data.
+   Nessuna configurazione esterna: funziona da solo una volta deployato su Netlify.
+   Se hai impostato la variabile d'ambiente MYCAVE_PIN su Netlify, l'app chiede
+   il PIN una volta e lo ricorda su questo dispositivo. */
+const PIN_KEY = 'mycave_pin';
+let cloudReady = true; // diventa false solo se la function non risponde proprio
+
+const PRESTIGE_ICON = { icona:'✦', pregiato:'◆', buono:'●', quotidiano:'○' };
+const PRIORITY_LABEL = { alta:'Bevi presto', media:'Finestra ottimale', conservazione:'Da conservare' };
+const COLOR_TAB_LABEL = { rosso:'Rossi', bianco:'Bianchi', rosato:'Rosati', bollicina:'Bolle' };
+
+const SEED_WINES = [
+  // TOSCANA
+  {id:'w1',name:'Chianti Classico',producer:'Mazzei',label:'Castello Fonterutoli',year:2023,region:'toscana',type:'Chianti Classico',priority:'media',temp:'15–17°C',notes:'',prestige:'buono',color:'rosso'},
+  {id:'w2',name:'Chianti Classico Gran Selezione Castellina',producer:'Mazzei',label:'Castello Fonterutoli',year:2021,region:'toscana',type:'Chianti Classico Gran Selezione',priority:'conservazione',temp:'16–18°C',notes:'Drink after 2026. Finestra: 2026–2038',prestige:'icona',color:'rosso'},
+  {id:'w3',name:'Chianti Riserva',producer:'Fattoria di Poggiopiano',label:'Galardi',year:2017,region:'toscana',type:'Chianti Classico Riserva',priority:'media',temp:'18°C',notes:'100% Sangiovese. 15% vol. Mauro Galardi, Fiesole. Biologico. Finestra: 2024–2027',prestige:'pregiato',color:'rosso'},
+  {id:'w4',name:'Villa Antinori Chianti Classico Riserva',producer:'Antinori',label:'Villa Antinori',year:2021,region:'toscana',type:'Chianti Classico Riserva',priority:'conservazione',temp:'16–18°C',notes:'14% vol. San Casciano Val di Pesa. Finestra: 2026–2033',prestige:'pregiato',color:'rosso'},
+  {id:'w5',name:'Villa Antinori Toscana IGT',producer:'Antinori',label:'Villa Antinori',year:2021,region:'toscana',type:'Campofiorin/Blend',priority:'conservazione',temp:'16–18°C',notes:'14% vol. 55% Sangiovese, 25% Cab Sauv, 15% Merlot, 5% Syrah. Cortona. Finestra: 2026–2033',prestige:'pregiato',color:'rosso'},
+  {id:'w6',name:'Rosso di Montalcino',producer:'Antinori',label:'Pian delle Vigne',year:2022,region:'toscana',type:'Rosso di Montalcino',priority:'media',temp:'16–18°C',notes:'14% vol. Tenuta Pian delle Vigne, Montalcino. 100% Sangiovese',prestige:'pregiato',color:'rosso'},
+  {id:'w6b',name:'Vino Nobile di Montepulciano',producer:'La Casella',label:'La Casella',year:2020,region:'toscana',type:'Vino Nobile di Montepulciano',priority:'conservazione',temp:'16–18°C',notes:'14,5% vol. Biologico IT-BIO-004. Prevalenza Sangiovese in botte. Finestra: 2024–2030',prestige:'pregiato',color:'rosso'},
+  {id:'w7',name:'Brunello di Montalcino',producer:'Castello Banfi',label:'',year:2001,region:'toscana',type:'Brunello di Montalcino',priority:'alta',temp:'18–20°C',notes:'25 anni. Annata 2001 — 3 stelle su 5. Note terziarie: fichi, nocciole, ciliegie stufate. Finestra: 2024–2027. Decantare 2–3 ore. APRILO.',prestige:'icona',color:'rosso'},
+  {id:'w8',name:'Chianti Classico',producer:'Poggio Gherardo',label:'',year:2022,region:'toscana',type:'Chianti Classico',priority:'alta',temp:'18–20°C',notes:'13,5% vol. Barberino Tavarnelle. Bouquet di mammola, sapore asciutto e tannico',prestige:'quotidiano',color:'rosso'},
+  // PIEMONTE
+  {id:'w9',name:'Barbaresco Casot',producer:'Roberto Abellonio',label:'Casot',year:2017,region:'piemonte',type:'Barbaresco',priority:'conservazione',temp:'16–18°C',notes:'Cascina Piccaluga, Alba. 14% vol. Finestra: 2024–2029',prestige:'icona',color:'rosso'},
+  {id:'w10',name:'Barbaresco',producer:'Pico Maccario',label:'Tradizione Acino Spirito',year:2020,region:'piemonte',type:'Barbaresco',priority:'conservazione',temp:'16–18°C',notes:'14% vol. Mombaruzzo (Asti). Finestra: 2025–2035',prestige:'pregiato',color:'rosso'},
+  {id:'w11',name:'Langhe Nebbiolo',producer:'Ellena Giuseppe',label:'',year:2022,region:'piemonte',type:'Nebbiolo',priority:'media',temp:'16–18°C',notes:'Azienda Agricola Ellena Giuseppe di Ellena Matteo, La Morra. 100% Nebbiolo',prestige:'buono',color:'rosso'},
+  {id:'w12',name:'Monferrato Nebbiolo',producer:'Gatto Pierfrancesco',label:'Gatto Matto',year:2022,region:'piemonte',type:'Nebbiolo',priority:'media',temp:'18–20°C',notes:'100% Nebbiolo. 14,5% vol. Organico. Castagnole Monferrato. Botti di rovere',prestige:'buono',color:'rosso'},
+  {id:'w13',name:'Barolo Bricco Manescotto',producer:'Corino',label:'Bricco Manescotto',year:2020,region:'piemonte',type:'Barolo',priority:'conservazione',temp:'16–18°C',notes:'100% Nebbiolo. 14% vol. La Morra, MGA Bricco Manescotto. 24 mesi barrique. Finestra: 2026–2038',prestige:'icona',color:'rosso'},
+  {id:'w14',name:'Barolo Villero',producer:'Boroli',label:'Villero',year:2018,region:'piemonte',type:'Barolo',priority:'conservazione',temp:'16–18°C',notes:'Achille Boroli, Castiglione Falletto. Cru Villero. Finestra: 2027–2038',prestige:'icona',color:'rosso'},
+  {id:'w15',name:"Barbera d'Asti Superiore Galanera",producer:'Duchessa Lia',label:'Galanera',year:2020,region:'piemonte',type:'Barbera',priority:'media',temp:'16–18°C',notes:"100% Barbera. Affinata in legno. Finestra: 2024–2026",prestige:'pregiato',color:'rosso'},
+  // VENETO
+  {id:'w16',name:'Valpolicella Ripasso Classico Superiore',producer:'Cantina Valpolicella Negrar',label:'',year:2020,region:'veneto',type:'Ripasso',priority:'alta',temp:'18–20°C',notes:'13,5% vol. Rifermentato su vinacce appassite, botti di rovere. Finestra: 2024–2026',prestige:'quotidiano',color:'rosso'},
+  {id:'w17',name:'Amarone della Valpolicella Classico',producer:'Zenato',label:'',year:2018,region:'veneto',type:'Amarone',priority:'conservazione',temp:'16–18°C',notes:'Annata 2018 buona. Finestra: 2025–2032',prestige:'icona',color:'rosso'},
+  {id:'w18',name:'Brolo Campofiorin',producer:'Masi',label:'Brolo Campofiorin',year:2021,region:'veneto',type:'Campofiorin/Blend',priority:'conservazione',temp:'18°C',notes:'Rosso Verona IGT. 14% vol. Corvina 80%, Oseleta 10%, Rondinella 10%. Finestra: 2024–2030',prestige:'pregiato',color:'rosso'},
+  {id:'w19',name:'Campofiorin',producer:'Masi',label:'',year:2020,region:'veneto',type:'Campofiorin/Blend',priority:'media',temp:'16–18°C',notes:'70% Corvina, 25% Rondinella, 5% Molinara. Finestra: 2024–2030',prestige:'buono',color:'rosso'},
+  {id:'w20',name:'Amarone Costasera',producer:'Masi',label:'Costasera',year:2018,region:'veneto',type:'Amarone',priority:'conservazione',temp:'16–18°C',notes:'70% Corvina, 25% Rondinella, 5% Molinara. Finestra: 2025–2035',prestige:'icona',color:'rosso'},
+  {id:'w22',name:"Perlanera Rosso d'Autore",producer:'Cantine della Corte',label:'Perlanera',year:2016,region:'veneto',type:'Rosso generico',priority:'alta',temp:'16–18°C',notes:'13,5% vol. Note di spezie dolci',prestige:'buono',color:'rosso'},
+  {id:'w23',name:"Sanguenero Rosso d'Autore",producer:'Cantine della Corte',label:'Sanguenero',year:null,region:'veneto',type:'Rosso generico',priority:'alta',temp:'18–20°C',notes:'Da uve Negroamaro. 16% vol. Vino da meditazione',prestige:'buono',color:'rosso'},
+  // UMBRIA
+  {id:'w21',name:'Montefalco Rosso DOC',producer:'Goretti',label:'Le Mura Saracene',year:2023,region:'umbria',type:'Rosso generico',priority:'media',temp:'18–20°C',notes:"14,4% vol. 65% Sangiovese, 20% Merlot, 15% Sagrantino. Perugia. Finestra: 2024–2028",prestige:'buono',color:'rosso'},
+  // LOMBARDIA
+  {id:'w24',name:'Syrah Riserva Speciale',producer:'Testori Quinto e Pietro',label:'Riserva Speciale',year:2022,region:'lombardia',type:'Rosso generico',priority:'media',temp:'16–18°C',notes:"100% Syrah. 14,5% vol. Santa Maria della Versa (PV). Doppia Medaglia d'Oro Chivas Wine Awards. Finestra: 2024–2028",prestige:'buono',color:'rosso'},
+  // BOLLICINE
+  {id:'b1',name:'Franciacorta Brut Rosé Rosa Rosæ',producer:'Bersi Serlini',label:'Rosa Rosæ',year:2022,region:'lombardia',type:'Franciacorta',priority:'alta',temp:'6–8°C',notes:'12,5% vol. DOCG Millesimato. Base Chardonnay e Pinot Nero. Bere entro 2–3 anni',prestige:'pregiato',color:'bollicina'},
+  {id:'b2',name:'Ferrari Riserva Lunelli',producer:'Ferrari',label:'Riserva Lunelli',year:2015,region:'trentino',type:'Trento DOC',priority:'media',temp:'8–10°C',notes:'12,5% vol. Extra Brut Riserva. 100% Chardonnay. Sboccatura 2022. Bere entro 2026',prestige:'icona',color:'bollicina'},
+  {id:'b3',name:'Cantina di Trento Millesimato Brut',producer:'Cantina di Trento',label:'Millesimato',year:2021,region:'trentino',type:'Trento DOC',priority:'alta',temp:'6–8°C',notes:'12,5% vol. Metodo Classico. Sboccatura 2025',prestige:'buono',color:'bollicina'},
+  {id:'b4',name:'Champagne Blanc de Noirs Brut',producer:'Michel Dervin',label:'Blanc de Noirs',year:null,region:'champagne',type:'Champagne',priority:'media',temp:'8–10°C',notes:'12,5% vol. NV. 100% uve nere. Cuchery, France. NM-141-001',prestige:'pregiato',color:'bollicina'},
+  {id:'b5',name:'Champagne Brut Rosé',producer:'Michel Dervin',label:'Brut Rosé',year:null,region:'champagne',type:'Champagne',priority:'alta',temp:'8–10°C',notes:'Champagne AOC NV. Cuchery, France. NM-141-001',prestige:'pregiato',color:'bollicina'},
+].map(w => ({...w, status:'in_cantina', personalRating:0, aiDescription:null, addedDate:new Date().toISOString(), consumedDate:null}));
+
+const SEED_CONSUMATI = [
+  {id:'c1',name:'Chianti Classico Pèppoli',producer:'Antinori',label:'',year:2022,region:'toscana',type:'Chianti Classico',color:'rosso'},
+  {id:'c2',name:"Dolcetto d'Alba Superiore",producer:'Mario Rivetti',label:'',year:2020,region:'piemonte',type:'Dolcetto',color:'rosso'},
+  {id:'c3',name:'Rosso Piceno',producer:'Marconi',label:'Vitalba',year:2023,region:'marche',type:'Rosso Piceno',color:'rosso'},
+  {id:'c4',name:'Romagna Sangiovese Superiore Riserva',producer:'',label:'',year:2022,region:'romagna',type:'Sangiovese',color:'rosso'},
+  {id:'c5',name:'Pinot Nero Terrazze della Luna',producer:'Cavit',label:'',year:2023,region:'trentino',type:'Pinot Nero',color:'rosso'},
+  {id:'c6',name:'Mori Vecio Rosso Trentino',producer:'',label:'',year:2020,region:'trentino',type:'Rosso generico',color:'rosso'},
+  {id:'c7',name:"Montepulciano d'Abruzzo",producer:'Ecasella',label:'',year:2020,region:'abruzzo',type:"Montepulciano d'Abruzzo",color:'rosso'},
+].map(w => ({...w, status:'consumato', priority:null, temp:'', notes:'Registrato durante la ricostruzione app — data di apertura non disponibile.', prestige:'buono', personalRating:0, aiDescription:null, addedDate:null, consumedDate:null}));
+
+let state = { wines: [], updatedAt: 0 };
+let currentTab = 'rosso';
+let currentPriorityFilter = null;
+let searchOpen = false;
+let activeWineId = null;
+let chatContextWineId = null;
+let photoData = { front:null, back:null };
+
+/* ---------- persistence ---------- */
+function loadState(){
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    if(raw){ state = JSON.parse(raw); return; }
+  }catch(e){}
+  state = { wines: [...SEED_WINES, ...SEED_CONSUMATI], updatedAt: Date.now() };
+  saveState();
+}
+function saveState(skipCloud){
+  state.updatedAt = Date.now();
+  localStorage.setItem(LS_KEY, JSON.stringify(state));
+  if(!skipCloud) pushToCloud();
+}
+
+/* ---------- utils ---------- */
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2200);
+}
+function byId(id){ return state.wines.find(w=>w.id===id); }
+function regionsInList(list){ return [...new Set(list.map(w=>w.region).filter(Boolean))]; }
+
+/* ---------- tabs ---------- */
+const TAB_DEFS = [
+  {key:'rosso', label:'Rossi'},
+  {key:'bianco', label:'Bianchi'},
+  {key:'rosato', label:'Rosati'},
+  {key:'bollicina', label:'Bolle'},
+  {key:'abbina', label:'Abbina'},
+  {key:'stats', label:'Statistiche'},
+  {key:'consumati', label:'Consumati'},
+];
+function renderTabStrip(){
+  const el = document.getElementById('tabs');
+  el.innerHTML = TAB_DEFS.map(t =>
+    `<button class="tab ${t.key===currentTab?'active':''}" onclick="setTab('${t.key}')">${t.label}</button>`
+  ).join('');
+  document.querySelectorAll('#bottomnav button').forEach(b=>{
+    b.classList.toggle('active', b.dataset.tab===currentTab);
+  });
+}
+function setTab(key){
+  currentTab = key;
+  currentPriorityFilter = null;
+  render();
+}
+function toggleSearch(){
+  searchOpen = !searchOpen;
+  document.getElementById('search-bar').classList.toggle('open', searchOpen);
+  if(searchOpen) document.getElementById('search-input').focus();
+}
+
+/* ---------- main render dispatcher ---------- */
+function render(){
+  renderTabStrip();
+  const main = document.getElementById('main');
+  const filtersEl = document.getElementById('filters');
+  filtersEl.innerHTML = '';
+  document.getElementById('fab').style.display = ['abbina','stats'].includes(currentTab) ? 'none' : 'flex';
+
+  if(currentTab === 'abbina'){ renderAbbina(main); return; }
+  if(currentTab === 'stats'){ renderStats(main); return; }
+  if(currentTab === 'consumati'){ renderConsumati(main); return; }
+  renderColorList(main, filtersEl, currentTab);
+}
+
+function renderColorList(main, filtersEl, color){
+  let list = state.wines.filter(w => w.status==='in_cantina' && w.color===color);
+
+  const priorities = ['alta','media','conservazione'];
+  filtersEl.innerHTML = priorities.map(p =>
+    `<span class="chip ${currentPriorityFilter===p?'active':''}" onclick="setPriorityFilter('${p}')">${PRIORITY_LABEL[p]}</span>`
+  ).join('');
+
+  if(currentPriorityFilter) list = list.filter(w=>w.priority===currentPriorityFilter);
+
+  const q = (document.getElementById('search-input').value||'').trim().toLowerCase();
+  if(q){
+    list = list.filter(w =>
+      (w.name||'').toLowerCase().includes(q) ||
+      (w.producer||'').toLowerCase().includes(q) ||
+      String(w.year||'').includes(q)
+    );
+  }
+
+  if(list.length===0){
+    main.innerHTML = `<div class="empty-state"><div class="icon">${color==='bollicina'?'✦':'◆'}</div>
+      <p>Nessuna bottiglia in "${COLOR_TAB_LABEL[color]}" al momento.<br>Tocca ＋ per aggiungerne una.</p></div>`;
+    return;
+  }
+
+  const byRegion = {};
+  list.forEach(w=>{ (byRegion[w.region||'altro'] ||= []).push(w); });
+  const regionOrder = Object.keys(byRegion).sort();
+
+  main.innerHTML = regionOrder.map(region => `
+    <div class="region-label">${region}</div>
+    ${byRegion[region].map(cardHTML).join('')}
+  `).join('');
+}
+function setPriorityFilter(p){
+  currentPriorityFilter = currentPriorityFilter===p ? null : p;
+  render();
+}
+function cardHTML(w){
+  return `<div class="card" onclick="openDetail('${w.id}')">
+    <div class="prestige">${PRESTIGE_ICON[w.prestige]||''}</div>
+    <div class="info">
+      <div class="name">${w.name}${w.year?` <span style="color:var(--cream-dim);font-size:14px;">'${String(w.year).slice(-2)}</span>`:''}</div>
+      <div class="meta">${w.producer||''}${w.label?' · '+w.label:''}</div>
+    </div>
+    ${w.priority?`<span class="badge ${w.priority}">${PRIORITY_LABEL[w.priority]}</span>`:''}
+  </div>`;
+}
+
+function renderConsumati(main){
+  const list = state.wines.filter(w=>w.status==='consumato').sort((a,b)=>(b.consumedDate||'').localeCompare(a.consumedDate||''));
+  if(list.length===0){
+    main.innerHTML = `<div class="empty-state"><div class="icon">⟲</div><p>Nessuna bottiglia ancora segnata come aperta.</p></div>`;
+    return;
+  }
+  main.innerHTML = `<div class="region-label">Storico bottiglie aperte</div>` + list.map(w=>`
+    <div class="card" onclick="openDetail('${w.id}')">
+      <div class="prestige">${PRESTIGE_ICON[w.prestige]||''}</div>
+      <div class="info">
+        <div class="name">${w.name}${w.year?` '${String(w.year).slice(-2)}`:''}</div>
+        <div class="meta">${w.producer||''} ${w.consumedDate?'· aperta il '+new Date(w.consumedDate).toLocaleDateString('it-IT'):''}</div>
+      </div>
+    </div>`).join('');
+}
+
+function renderStats(main){
+  const active = state.wines.filter(w=>w.status==='in_cantina');
+  const consumed = state.wines.filter(w=>w.status==='consumato');
+  const byColor = {};
+  const byRegion = {};
+  const byPriority = {alta:0,media:0,conservazione:0};
+  active.forEach(w=>{
+    byColor[w.color]=(byColor[w.color]||0)+1;
+    byRegion[w.region]=(byRegion[w.region]||0)+1;
+    if(w.priority) byPriority[w.priority]=(byPriority[w.priority]||0)+1;
+  });
+  const maxRegion = Math.max(1,...Object.values(byRegion));
+
+  main.innerHTML = `
+    <div class="stat-block">
+      <div class="stat-title">In cantina</div>
+      <div class="stat-num">${active.length}</div>
+    </div>
+    <div class="stat-block">
+      <div class="stat-title">Per priorità</div>
+      ${['alta','media','conservazione'].map(p=>`
+        <div class="bar-row">
+          <div class="bar-label">${PRIORITY_LABEL[p]}</div>
+          <div class="bar-track"><div class="bar-fill" style="width:${active.length?byPriority[p]/active.length*100:0}%;"></div></div>
+          <div class="bar-num">${byPriority[p]}</div>
+        </div>`).join('')}
+    </div>
+    <div class="stat-block">
+      <div class="stat-title">Per regione</div>
+      ${Object.keys(byRegion).sort((a,b)=>byRegion[b]-byRegion[a]).map(r=>`
+        <div class="bar-row">
+          <div class="bar-label">${r}</div>
+          <div class="bar-track"><div class="bar-fill" style="width:${byRegion[r]/maxRegion*100}%;"></div></div>
+          <div class="bar-num">${byRegion[r]}</div>
+        </div>`).join('')}
+    </div>
+    <div class="stat-block">
+      <div class="stat-title">Bottiglie aperte (storico)</div>
+      <div class="stat-num">${consumed.length}</div>
+    </div>
+  `;
+}
+
+/* ---------- ABBINA (pairing) ---------- */
+function renderAbbina(main){
+  main.innerHTML = `
+    <div class="region-label">Cosa mangi stasera?</div>
+    <textarea class="forminput" id="dish-input" placeholder="es. tagliata di manzo con rucola e grana"></textarea>
+    <button class="btn btn-primary" onclick="pairDish()">Suggerisci vini dalla cantina</button>
+    <div id="pair-result"></div>
+  `;
+}
+async function pairDish(){
+  const dish = document.getElementById('dish-input').value.trim();
+  if(!dish){ toast('Scrivi prima cosa mangi'); return; }
+  const resultEl = document.getElementById('pair-result');
+  resultEl.innerHTML = `<div class="ai-box"><span class="ai-loading">Il sommelier sta scegliendo…</span></div>`;
+
+  const cellar = state.wines.filter(w=>w.status==='in_cantina').map(w=>({
+    id:w.id,name:w.name,producer:w.producer,type:w.type,region:w.region,priority:w.priority,color:w.color
+  }));
+
+  try{
+    const text = await callAI('pair', {dish, cellar});
+    let parsed;
+    try{ parsed = JSON.parse(text.replace(/```json|```/g,'').trim()); }catch(e){ parsed = null; }
+
+    if(parsed && parsed.suggestions){
+      resultEl.innerHTML = parsed.suggestions.map(s=>{
+        const w = byId(s.id);
+        if(!w) return '';
+        return `<div class="card" onclick="openDetail('${w.id}')" style="margin-top:12px;">
+          <div class="prestige">${PRESTIGE_ICON[w.prestige]||''}</div>
+          <div class="info">
+            <div class="name">${w.name}</div>
+            <div class="meta">${s.reason}</div>
+          </div>
+        </div>`;
+      }).join('');
+    } else {
+      resultEl.innerHTML = `<div class="ai-box">${escapeHTML(text)}</div>`;
+    }
+  }catch(e){
+    resultEl.innerHTML = `<div class="ai-box">Non sono riuscito a contattare il sommelier AI. ${escapeHTML(e.message||'')}</div>`;
+  }
+}
+
+/* ---------- DETAIL SHEET ---------- */
+function openDetail(id){
+  activeWineId = id;
+  const w = byId(id);
+  const el = document.getElementById('detail-content');
+
+  const starsHTML = [1,2,3,4,5].map(n=>`<span class="${n<=(w.personalRating||0)?'on':''}" onclick="setRating('${id}',${n})">★</span>`).join('');
+
+  el.innerHTML = `
+    <h2>${w.name}</h2>
+    <div class="sheet-sub">${w.producer||''}${w.label?' · '+w.label:''}${w.year?' · '+w.year:''}</div>
+
+    <div class="stars">${starsHTML}</div>
+
+    <div class="field-row"><span class="label">Tipologia</span><span class="val">${w.type||'—'}</span></div>
+    <div class="field-row"><span class="label">Regione</span><span class="val">${w.region||'—'}</span></div>
+    ${w.priority?`<div class="field-row"><span class="label">Priorità</span><span class="val">${PRIORITY_LABEL[w.priority]}</span></div>`:''}
+    <div class="field-row"><span class="label">Prestigio</span><span class="val">${PRESTIGE_ICON[w.prestige]} ${w.prestige}</span></div>
+    ${w.temp?`<div class="field-row"><span class="label">Temperatura</span><span class="val">${w.temp}</span></div>`:''}
+    ${w.notes?`<div class="field-row"><span class="label">Note</span><span class="val">${w.notes}</span></div>`:''}
+    ${w.consumedDate?`<div class="field-row"><span class="label">Aperta il</span><span class="val">${new Date(w.consumedDate).toLocaleDateString('it-IT')}</span></div>`:''}
+
+    <div class="ai-box" id="ai-desc-box">
+      <span class="ai-tag">Sommelier AI</span>
+      <span id="ai-desc-text">${w.aiDescription ? escapeHTML(w.aiDescription) : '<span class="ai-loading">Genero una descrizione…</span>'}</span>
+    </div>
+
+    <button class="btn btn-secondary" onclick="openSommelier('${id}')">Chiedi al sommelier</button>
+    ${w.status==='in_cantina' ? `<button class="btn btn-primary" onclick="markConsumed('${id}')">Segna come aperta</button>` : ''}
+    <button class="btn btn-danger" onclick="deleteWine('${id}')">Elimina</button>
+  `;
+
+  document.getElementById('detail-overlay').classList.add('open');
+
+  if(!w.aiDescription){
+    callAI('describe', {wine:{name:w.name,producer:w.producer,label:w.label,year:w.year,type:w.type,region:w.region,notes:w.notes}})
+      .then(text=>{
+        w.aiDescription = text.trim();
+        saveState();
+        const box = document.getElementById('ai-desc-text');
+        if(box) box.textContent = w.aiDescription;
+      })
+      .catch(()=>{
+        const box = document.getElementById('ai-desc-text');
+        if(box) box.textContent = 'Descrizione non disponibile al momento.';
+      });
+  }
+}
+function setRating(id, n){
+  const w = byId(id);
+  w.personalRating = w.personalRating===n ? 0 : n;
+  saveState();
+  openDetail(id);
+}
+function markConsumed(id){
+  const w = byId(id);
+  w.status = 'consumato';
+  w.consumedDate = new Date().toISOString();
+  saveState();
+  closeSheet('detail-overlay');
+  render();
+  toast(`${w.name} segnata come aperta`);
+}
+function deleteWine(id){
+  const w = byId(id);
+  if(!confirm(`Eliminare "${w.name}" definitivamente?`)) return;
+  state.wines = state.wines.filter(x=>x.id!==id);
+  saveState();
+  closeSheet('detail-overlay');
+  render();
+  toast('Bottiglia eliminata');
+}
+function closeSheet(overlayId){
+  document.getElementById(overlayId).classList.remove('open');
+}
+
+/* ---------- ADD WINE ---------- */
+function openAddSheet(){
+  ['f-name','f-producer','f-label','f-year','f-region','f-type','f-temp','f-notes'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f-color').value='rosso';
+  document.getElementById('f-priority').value='media';
+  document.getElementById('f-prestige').value='buono';
+  photoData = {front:null, back:null};
+  document.getElementById('photo-front').querySelector('img')?.remove();
+  document.getElementById('photo-back').querySelector('img')?.remove();
+  document.getElementById('photo-front-label').style.display='block';
+  document.getElementById('photo-back-label').style.display='block';
+  document.getElementById('recognize-btn').style.display='none';
+  document.getElementById('recognize-status').style.display='none';
+  document.getElementById('add-overlay').classList.add('open');
+}
+function handlePhoto(event, slot){
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const dataUrl = reader.result;
+    photoData[slot] = { data: dataUrl.split(',')[1], mediaType: file.type };
+    const slotEl = document.getElementById('photo-'+slot);
+    slotEl.querySelector('#photo-'+slot+'-label').style.display='none';
+    let img = slotEl.querySelector('img');
+    if(!img){ img = document.createElement('img'); slotEl.prepend(img); }
+    img.src = dataUrl;
+    if(photoData.front || photoData.back) document.getElementById('recognize-btn').style.display='block';
+  };
+  reader.readAsDataURL(file);
+}
+async function recognizeLabel(){
+  const images = [photoData.front, photoData.back].filter(Boolean);
+  if(images.length===0) return;
+  document.getElementById('recognize-status').style.display='block';
+  try{
+    const text = await callAI('recognize', {images});
+    const data = JSON.parse(text.replace(/```json|```/g,'').trim());
+    if(data.name) document.getElementById('f-name').value = data.name;
+    if(data.producer) document.getElementById('f-producer').value = data.producer;
+    if(data.label) document.getElementById('f-label').value = data.label;
+    if(data.year) document.getElementById('f-year').value = data.year;
+    if(data.region) document.getElementById('f-region').value = data.region;
+    if(data.type) document.getElementById('f-type').value = data.type;
+    if(data.notes) document.getElementById('f-notes').value = data.notes;
+    toast('Etichetta letta — controlla i campi');
+  }catch(e){
+    toast('Non sono riuscito a leggere l\'etichetta');
+  }finally{
+    document.getElementById('recognize-status').style.display='none';
+  }
+}
+function saveNewWine(){
+  const name = document.getElementById('f-name').value.trim();
+  if(!name){ toast('Il nome è obbligatorio'); return; }
+  const yearVal = document.getElementById('f-year').value.trim();
+  const w = {
+    id: 'w_'+Date.now(),
+    name,
+    producer: document.getElementById('f-producer').value.trim(),
+    label: document.getElementById('f-label').value.trim(),
+    year: yearVal ? parseInt(yearVal,10) : null,
+    color: document.getElementById('f-color').value,
+    region: document.getElementById('f-region').value.trim().toLowerCase(),
+    type: document.getElementById('f-type').value.trim(),
+    priority: document.getElementById('f-priority').value,
+    prestige: document.getElementById('f-prestige').value,
+    temp: document.getElementById('f-temp').value.trim(),
+    notes: document.getElementById('f-notes').value.trim(),
+    status: 'in_cantina',
+    personalRating: 0,
+    aiDescription: null,
+    addedDate: new Date().toISOString(),
+    consumedDate: null
+  };
+  state.wines.push(w);
+  saveState();
+  closeSheet('add-overlay');
+  currentTab = w.color;
+  render();
+  toast(`${name} aggiunta alla cantina`);
+}
+
+/* ---------- SOMMELIER CHAT ---------- */
+let chatHistory = [];
+function openSommelier(wineId){
+  chatContextWineId = wineId || null;
+  chatHistory = [];
+  document.getElementById('chat-log').innerHTML = '';
+  const w = wineId ? byId(wineId) : null;
+  document.getElementById('sommelier-context').textContent = w ? `Stai chiedendo su: ${w.name}` : 'Chiedi quello che vuoi sulla cantina';
+  document.getElementById('sommelier-overlay').classList.add('open');
+  closeSheet('detail-overlay');
+}
+async function sendChat(){
+  const input = document.getElementById('chat-input');
+  const q = input.value.trim();
+  if(!q) return;
+  input.value='';
+  addChatMsg('user', q);
+  const loadingId = addChatMsg('ai', '…');
+
+  try{
+    const w = chatContextWineId ? byId(chatContextWineId) : null;
+    const payload = w
+      ? {question:q, wine:{name:w.name,producer:w.producer,year:w.year,type:w.type,region:w.region,notes:w.notes}}
+      : {question:q, cellar: state.wines.filter(x=>x.status==='in_cantina').map(x=>({name:x.name,type:x.type,region:x.region,priority:x.priority}))};
+    const text = await callAI('sommelier', payload);
+    updateChatMsg(loadingId, text.trim());
+  }catch(e){
+    updateChatMsg(loadingId, 'Non sono riuscito a rispondere — controlla la connessione.');
+  }
+}
+function addChatMsg(role, text){
+  const log = document.getElementById('chat-log');
+  const id = 'msg_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);
+  const div = document.createElement('div');
+  div.className = 'msg '+role;
+  div.id = id;
+  div.textContent = text;
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+  return id;
+}
+function updateChatMsg(id, text){
+  const el = document.getElementById(id);
+  if(el) el.textContent = text;
+  document.getElementById('chat-log').scrollTop = 999999;
+}
+
+/* ---------- AI proxy call ---------- */
+async function callAI(mode, payload){
+  const res = await fetch('/.netlify/functions/ai', {
+    method:'POST',
+    headers:{'Content-Type':'application/json', ...pinHeaders()},
+    body: JSON.stringify({mode, payload})
+  });
+  if(res.status === 401){
+    localStorage.removeItem(PIN_KEY);
+    showPinGate('PIN scaduto o errato — inseriscilo di nuovo.');
+    throw new Error('PIN richiesto');
+  }
+  if(!res.ok){
+    const err = await res.json().catch(()=>({error:'Errore sconosciuto'}));
+    throw new Error(err.error || 'Errore AI');
+  }
+  const data = await res.json();
+  return data.text || '';
+}
+
+function escapeHTML(s){
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+/* ---------- PIN ---------- */
+function getPin(){ return localStorage.getItem(PIN_KEY) || ''; }
+function pinHeaders(){ return { 'X-MyCave-Pin': getPin() }; }
+function showPinGate(message){
+  document.getElementById('pin-error').textContent = message || '';
+  document.getElementById('pin-gate').classList.add('open');
+  document.getElementById('pin-input').focus();
+}
+function hidePinGate(){
+  document.getElementById('pin-gate').classList.remove('open');
+}
+async function submitPin(){
+  const val = document.getElementById('pin-input').value.trim();
+  if(!val){ return; }
+  localStorage.setItem(PIN_KEY, val);
+  const ok = await pullFromCloud(true);
+  if(ok === false){
+    localStorage.removeItem(PIN_KEY);
+    showPinGate('PIN errato, riprova.');
+    return;
+  }
+  hidePinGate();
+  render();
+}
+
+/* ---------- Cloud sync (Netlify Blobs) ---------- */
+async function pullFromCloud(isVerification){
+  try{
+    const res = await fetch('/.netlify/functions/data', { headers: pinHeaders() });
+    if(res.status === 401){
+      if(!isVerification) showPinGate('PIN richiesto per accedere alla cantina.');
+      return false;
+    }
+    if(!res.ok) return null;
+    const { data } = await res.json();
+    if(data && data.wines){
+      if(!state.wines.length || (data.updatedAt||0) >= (state.updatedAt||0)){
+        state = data;
+        localStorage.setItem(LS_KEY, JSON.stringify(state));
+      }
+    } else if(isVerification){
+      // primo avvio in assoluto: nessun dato cloud ancora — carica i semi e pubblicali
+      await pushToCloud();
+    }
+    return true;
+  }catch(e){
+    cloudReady = false;
+    return null;
+  }
+}
+async function pushToCloud(){
+  try{
+    const res = await fetch('/.netlify/functions/data', {
+      method:'PUT',
+      headers:{'Content-Type':'application/json', ...pinHeaders()},
+      body: JSON.stringify(state)
+    });
+    if(res.status === 401){
+      localStorage.removeItem(PIN_KEY);
+      showPinGate('PIN scaduto o errato — inseriscilo di nuovo per continuare a sincronizzare.');
+      return false;
+    }
+    cloudReady = res.ok;
+    return res.ok;
+  }catch(e){
+    cloudReady = false;
+    return false;
+  }
+}
+
+/* ---------- SETTINGS / BACKUP ---------- */
+function openSettings(){
+  document.getElementById('settings-count').textContent = state.wines.filter(w=>w.status==='in_cantina').length + ' in cantina, ' + state.wines.filter(w=>w.status==='consumato').length + ' aperte';
+  document.getElementById('sync-status').textContent = cloudReady ? 'Sync cloud attiva (Netlify Blobs) — dati richiamabili da qualsiasi dispositivo' : 'Sync cloud non raggiungibile ora — dati salvati solo su questo telefono, riprova più tardi';
+  document.getElementById('settings-overlay').classList.add('open');
+}
+function exportBackup(){
+  const blob = new Blob([JSON.stringify(state, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const dateStr = new Date().toISOString().slice(0,10);
+  a.href = url;
+  a.download = `mycave-backup-${dateStr}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  toast('Backup scaricato');
+}
+function importBackup(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try{
+      const imported = JSON.parse(reader.result);
+      if(!imported.wines || !Array.isArray(imported.wines)) throw new Error('formato non valido');
+      if(!confirm(`Sostituire i dati attuali con il backup (${imported.wines.length} bottiglie)? Questa azione non si può annullare.`)) return;
+      state = imported;
+      saveState();
+      closeSheet('settings-overlay');
+      render();
+      toast('Backup importato');
+    }catch(e){
+      toast('File di backup non valido');
+    }
+  };
+  reader.readAsText(file);
+}
+
+/* ---------- boot ---------- */
+async function boot(){
+  loadState();
+  render();
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('/sw.js').catch(()=>{});
+  }
+  if(getPin()){
+    const ok = await pullFromCloud(false);
+    if(ok) render();
+  } else {
+    // prova comunque: se MYCAVE_PIN non è impostato lato server, l'endpoint è aperto
+    const ok = await pullFromCloud(true);
+    if(ok) render();
+  }
+}
+boot();
+</script>
+</body>
+</html>
