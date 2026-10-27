@@ -49,11 +49,18 @@ export default async (req) => {
       break;
     }
 
-    case 'pair':
-      system = 'Sei un sommelier che abbina vini a piatti usando SOLO i vini in cantina che ti vengono forniti (usa gli id forniti, mai inventarne). Rispondi in italiano. Suggerisci 2-3 vini in ordine di preferenza, motivando ogni scelta in una riga. Dai priorità ai vini con priorità "alta" (da bere presto) quando l\'abbinamento regge comunque bene, per favorire la rotazione. Rispondi con JSON puro, senza markdown: {"suggestions":[{"id":"...","reason":"..."}]}';
-      messages = [{ role: 'user', content: `Piatto: ${payload.dish}\n\nCantina disponibile:\n${JSON.stringify(payload.cellar)}` }];
+    case 'pair': {
+      const dish = String(payload.dish || '').trim().slice(0, 400);
+      const today = new Date().toISOString().slice(0, 10);
+      system = `Sei un sommelier che sceglie vini usando SOLO i vini in cantina che ti vengono forniti (usa gli id forniti, mai inventarne). Oggi è il ${today}. Rispondi in italiano. ` +
+        (dish
+          ? 'Abbina i vini al piatto: suggerisci 2-3 vini in ordine di preferenza, motivando ogni scelta in una riga. '
+          : 'Non è indicato alcun piatto: scegli le 2 bottiglie migliori da aprire stasera, in base a priorità, annata e finestra di consumo, motivando ogni scelta in una riga. ') +
+        'Dai priorità ai vini con priorità "alta" (da bere presto) quando la scelta regge comunque bene, per favorire la rotazione. Rispondi con JSON puro, senza markdown: {"suggestions":[{"id":"...","reason":"..."}]}';
+      messages = [{ role: 'user', content: `${dish ? `Piatto: ${dish}` : 'Nessun piatto indicato.'}\n\nCantina disponibile:\n${JSON.stringify(payload.cellar)}` }];
       maxTokens = 600;
       break;
+    }
 
     case 'recognize':
     case 'parse': {
@@ -69,7 +76,7 @@ export default async (req) => {
         '- qty: numero intero di bottiglie solo se indicato, altrimenti null.',
         '- price: prezzo di UNA bottiglia in euro, come numero (es. 34.33), solo se indicato. Se il prezzo è dato per più bottiglie ("68 euro in tutto") dividi per qty. Altrimenti null.',
         'CAMPI STIMATI DA TE (color, priority, prestige, temp, window): rispondi sempre, anche se non sono scritti, usando la tua competenza.',
-        '- color: esattamente uno tra rosso, bianco, rosato, bollicina.',
+        '- color: esattamente uno tra rosso, bianco, bollicina. Le bollicine rosate vanno in bollicina; un rosato fermo va in rosso se la tinta è intensa, altrimenti in bianco.',
         '- prestige: esattamente uno tra quotidiano (vino da tutti i giorni), buono (buon vino di denominazione, produttore solido), pregiato (denominazione importante, produttore di livello, riserve, cru), icona (etichette da collezione, grandi nomi).',
         '- window: anni di inizio e fine della finestra di consumo ottimale, in base ad annata, tipologia e produttore; senza annata usa null.',
         '- priority: esattamente uno tra alta (oggi è già nella finestra ed è oltre metà o vicino alla fine: da bere presto), media (oggi è dentro la finestra ottimale), conservazione (oggi è prima della finestra o è un vino da lungo invecchiamento). Senza annata usa media.',

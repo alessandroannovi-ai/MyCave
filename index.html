@@ -300,6 +300,24 @@
   .qty-btn{width:36px;height:36px;border:1px solid rgba(255,255,255,.25);background:transparent;color:#f1efe9;border-radius:2px;font-size:18px;line-height:1;cursor:pointer;}
   .field-row .val b{display:inline-block;min-width:34px;text-align:center;font-size:16px;font-weight:600;}
   .field-row .val{display:flex;align-items:center;}
+  /* 2.5: navigazione a 4 voci solo testo */
+  #bottomnav button{font-size:11px!important;letter-spacing:1.8px!important;padding:14px 4px 12px!important;font-weight:600;}
+  .btn-big{padding:24px 16px!important;font-size:14px!important;margin:10px 0 4px!important;}
+  .acc-head{display:flex;justify-content:space-between;align-items:center;width:100%;background:none;border:0;border-bottom:1px solid var(--hair);color:#f1efe9;font:inherit;font-size:13px;font-weight:600;letter-spacing:2px;text-transform:uppercase;padding:22px 0;text-align:left;cursor:pointer;}
+  .acc-head .acc-ic{color:#ff4a2a;font-size:20px;letter-spacing:0;font-weight:400;}
+  .acc-body{padding:14px 0 8px;}
+  /* 2.5: i due controlli in testata sono identici per misura e stile */
+  .hdr-actions{display:flex;align-items:center;gap:0;margin:-4px -10px 0 0;align-self:flex-start;}
+  .hdr-btn{position:relative;width:44px;height:44px;display:flex;align-items:center;justify-content:center;background:none!important;border:0!important;padding:0!important;margin:0!important;color:#f1efe9!important;font-size:0;-webkit-tap-highlight-color:transparent;cursor:pointer;}
+  .hdr-btn:active{opacity:.55;}
+  .hdr-btn svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;}
+  #sync-dot{border-radius:0!important;width:44px!important;height:44px!important;}
+  #sync-dot::before{content:'';position:absolute;left:50%;top:50%;width:22px;height:22px;margin:-11px 0 0 -11px;border:1.7px solid currentColor;border-radius:50%;box-sizing:border-box;}
+  #sync-dot::after{content:'';position:absolute;left:50%;top:50%;width:10px;height:10px;margin:-5px 0 0 -5px;border-radius:50%;background:#8e8b84;}
+  #sync-dot.synced::after{background:#4f9a5a;} #sync-dot.pending::after{background:#e0b341;} #sync-dot.offline::after,#sync-dot.error::after,#sync-dot.pin::after{background:#ff4a2a;}
+  .tonight-note{font-size:12px;color:var(--cream-dim);margin:10px 0 0;line-height:1.5;}
+  main{padding-bottom:calc(170px + var(--safe-bottom))!important;}   /* l'ultima riga resta sopra il ＋ */
+  #bottomnav{background:#0a0a0a!important;}
 </style>
 </head>
 <body>
@@ -310,10 +328,9 @@
       <div class="subtitle" id="header-sub">Cantina Marmoreto</div>
       <h1 id="header-title">MyCave</h1>
     </div>
-    <div style="display:flex;gap:4px;">
-      <span id="sync-dot" onclick="openSettings()"></span>
-      <button id="search-btn" onclick="toggleSearch()">⌕</button>
-      <button id="settings-btn" onclick="openSettings()">⚙</button>
+    <div class="hdr-actions">
+      <button class="hdr-btn" id="search-btn" aria-label="Cerca" onclick="toggleSearch()"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg></button>
+      <button class="hdr-btn" id="sync-dot" aria-label="Sincronizzazione e impostazioni" onclick="openSettings()"></button>
     </div>
   </header>
 
@@ -326,13 +343,10 @@
   <button id="fab" onclick="openAddSheet()">＋</button>
 
   <div id="bottomnav">
-    <button data-tab="rosso" class="active" onclick="setTab('rosso')"><span class="ic">◆</span>Rossi</button>
-    <button data-tab="bianco" onclick="setTab('bianco')"><span class="ic">◇</span>Bianchi</button>
-    <button data-tab="rosato" onclick="setTab('rosato')"><span class="ic">●</span>Rosati</button>
-    <button data-tab="bollicina" onclick="setTab('bollicina')"><span class="ic">✦</span>Bolle</button>
-    <button data-tab="abbina" onclick="setTab('abbina')"><span class="ic">⋈</span>Abbina</button>
-    <button data-tab="stats" onclick="setTab('stats')"><span class="ic">▤</span>Stats</button>
-    <button data-tab="consumati" onclick="setTab('consumati')"><span class="ic">⟲</span>Storico</button>
+    <button data-tab="cantina" class="active" onclick="setTab('cantina')">Cantina</button>
+    <button data-tab="stasera" onclick="setTab('stasera')">Stasera</button>
+    <button data-tab="storico" onclick="setTab('storico')">Storico</button>
+    <button data-tab="dati" onclick="setTab('dati')">Dati</button>
   </div>
 </div>
 
@@ -394,13 +408,12 @@
     <input class="forminput" id="f-year" inputmode="numeric" placeholder="es. 2021 — lascia vuoto se NV">
     <label class="formlabel">Bottiglie</label>
     <input class="forminput" id="f-qty" type="number" inputmode="numeric" min="1" max="99" value="1">
-    <label class="formlabel">Prezzo per bottiglia (€)</label>
+    <label class="formlabel">Prezzo per bottiglia (€, facoltativo)</label>
     <input class="forminput" id="f-price" inputmode="decimal" placeholder="es. 34,33">
     <label class="formlabel">Colore</label>
     <select class="forminput" id="f-color">
       <option value="rosso">Rosso</option>
       <option value="bianco">Bianco</option>
-      <option value="rosato">Rosato</option>
       <option value="bollicina">Bollicina</option>
     </select>
     <label class="formlabel">Regione</label>
@@ -478,7 +491,7 @@
    MYCAVE — stato, dati, rendering, AI
    ========================================================= */
 
-const APP_VERSION = '2.4 · 27 ott 2026';
+const APP_VERSION = '2.5 · 27 ott 2026';
 const LS_KEY = 'mycave_v2';   // copia locale (cache) + stato di sincronizzazione
 const PIN_KEY = 'mycave_pin';
 
@@ -494,7 +507,7 @@ const PIN_KEY = 'mycave_pin';
 
 const PRESTIGE_ICON = { icona:'✦', pregiato:'◆', buono:'●', quotidiano:'○' };
 const PRIORITY_LABEL = { alta:'Bevi presto', media:'Finestra ottimale', conservazione:'Da conservare' };
-const COLOR_TAB_LABEL = { rosso:'Rossi', bianco:'Bianchi', rosato:'Rosati', bollicina:'Bolle' };
+const COLOR_TAB_LABEL = { rosso:'Rossi', bianco:'Bianchi', bollicina:'Bolle' };
 
 const SEED_WINES = [
   // TOSCANA
@@ -548,7 +561,9 @@ const SEED_CONSUMATI = [
 let state = { wines: [], rev: 0, dirty: false, changeSeq: 0, lastSyncAt: 0 };
 let syncStatus = 'init', syncDetail = '', cloudKnown = false, serverPinRequired = null;
 let syncing = false, syncAgain = false, syncTimer = null, lastSyncTry = 0;
-let currentTab = 'rosso';
+let currentTab = 'cantina';
+let colorFilter = null;
+let datiOpen = 'stats';
 let currentPriorityFilter = null;
 let searchOpen = false;
 let activeWineId = null;
@@ -603,30 +618,30 @@ function byId(id){ return live().find(w=>w.id===id); }
 const esc = (s) => escapeHTML(String(s == null ? '' : s));
 function regionsInList(list){ return [...new Set(list.map(w=>w.region).filter(Boolean))]; }
 
-/* ---------- tabs ---------- */
-const TAB_DEFS = [
-  {key:'rosso', label:'Rossi'},
-  {key:'bianco', label:'Bianchi'},
-  {key:'rosato', label:'Rosati'},
-  {key:'bollicina', label:'Bolle'},
-  {key:'abbina', label:'Abbina'},
-  {key:'stats', label:'Statistiche'},
-  {key:'consumati', label:'Consumati'},
-];
+/* ---------- navigazione: 4 voci (Cantina, Stasera, Storico, Dati) ---------- */
+const COLOR_FILTERS = [[null,'Tutti'],['rosso','Rossi'],['bianco','Bianchi'],['bollicina','Bolle']];
 function renderTabStrip(){
   const el = document.getElementById('tabs');
-  el.innerHTML = TAB_DEFS.map(t =>
-    `<button class="tab ${t.key===currentTab?'active':''}" onclick="setTab('${t.key}')">${t.label}</button>`
-  ).join('');
+  if(currentTab === 'cantina'){
+    el.style.display = '';
+    el.innerHTML = COLOR_FILTERS.map(([k,l]) =>
+      `<button class="tab ${k===colorFilter?'active':''}" onclick="setColorFilter(${k?`'${k}'`:'null'})">${l}</button>`
+    ).join('');
+  } else { el.style.display = 'none'; el.innerHTML = ''; }
   document.querySelectorAll('#bottomnav button').forEach(b=>{
     b.classList.toggle('active', b.dataset.tab===currentTab);
   });
+  // la ricerca ha senso solo in Cantina
+  document.getElementById('search-btn').style.display = currentTab==='cantina' ? '' : 'none';
+  document.getElementById('search-bar').style.display = currentTab==='cantina' ? '' : 'none';
 }
 function setTab(key){
   currentTab = key;
   currentPriorityFilter = null;
   render();
+  const m = document.getElementById('main'); if(m) m.scrollTop = 0;
 }
+function setColorFilter(c){ colorFilter = c; render(); }
 function toggleSearch(){
   searchOpen = !searchOpen;
   document.getElementById('search-bar').classList.toggle('open', searchOpen);
@@ -639,16 +654,16 @@ function render(){
   const main = document.getElementById('main');
   const filtersEl = document.getElementById('filters');
   filtersEl.innerHTML = '';
-  document.getElementById('fab').style.display = ['abbina','stats'].includes(currentTab) ? 'none' : 'flex';
+  document.getElementById('fab').style.display = 'flex';   // il ＋ è uguale in tutte le schermate
 
-  if(currentTab === 'abbina'){ renderAbbina(main); return; }
-  if(currentTab === 'stats'){ renderStats(main); return; }
-  if(currentTab === 'consumati'){ renderConsumati(main); return; }
-  renderColorList(main, filtersEl, currentTab);
+  if(currentTab === 'stasera'){ renderStasera(main); return; }
+  if(currentTab === 'storico'){ renderConsumati(main); return; }
+  if(currentTab === 'dati'){ renderDati(main); return; }
+  renderColorList(main, filtersEl);
 }
 
-function renderColorList(main, filtersEl, color){
-  let list = live().filter(w => w.status==='in_cantina' && w.color===color);
+function renderColorList(main, filtersEl){
+  let list = live().filter(w => w.status==='in_cantina' && (!colorFilter || w.color===colorFilter));
 
   const priorities = ['alta','media','conservazione'];
   filtersEl.innerHTML = priorities.map(p =>
@@ -675,8 +690,8 @@ function renderColorList(main, filtersEl, color){
     return;
   }
   if(list.length===0){
-    main.innerHTML = `<div class="empty-state"><div class="icon">${color==='bollicina'?'✦':'◆'}</div>
-      <p>Nessuna bottiglia in "${COLOR_TAB_LABEL[color]}" al momento.<br>Tocca ＋ per aggiungerne una.</p></div>`;
+    main.innerHTML = `<div class="empty-state"><div class="icon">${colorFilter==='bollicina'?'✦':'◆'}</div>
+      <p>Nessuna bottiglia${colorFilter?` in "${COLOR_TAB_LABEL[colorFilter]}"`:''} al momento.<br>Tocca ＋ per aggiungerne una.</p></div>`;
     return;
   }
 
@@ -686,21 +701,22 @@ function renderColorList(main, filtersEl, color){
 
   main.innerHTML = regionOrder.map(region => `
     <div class="region-label">${esc(region)}</div>
-    ${byRegion[region].map(cardHTML).join('')}
+    ${byRegion[region].map(w=>cardHTML(w)).join('')}
   `).join('');
 }
 function setPriorityFilter(p){
   currentPriorityFilter = currentPriorityFilter===p ? null : p;
   render();
 }
-function cardHTML(w){
+function cardHTML(w, opts){
+  opts = opts || {};
   return `<div class="card c-${w.color||'rosso'}" onclick="openDetail('${w.id}')">
     <div class="prestige">${PRESTIGE_ICON[w.prestige]||''}</div>
     <div class="info">
       <div class="name">${esc(w.name)}${w.year?` <span style="color:var(--cream-dim);font-size:14px;">'${String(w.year).slice(-2)}</span>`:''}${qtyOf(w)>1?`<span class="qty-tag">×${qtyOf(w)}</span>`:''}</div>
-      <div class="meta">${esc(w.producer||'')}${w.label?' · '+esc(w.label):''}</div>
+      <div class="meta">${esc(w.producer||'')}${w.label?' · '+esc(w.label):''}${opts.meta?' · '+esc(opts.meta):''}</div>
     </div>
-    ${w.priority?`<span class="badge ${w.priority}">${PRIORITY_LABEL[w.priority]}</span>`:''}
+    ${w.priority&&!opts.noBadge?`<span class="badge ${w.priority}">${PRIORITY_LABEL[w.priority]}</span>`:''}
   </div>`;
 }
 
@@ -725,7 +741,7 @@ function renderConsumati(main){
       <div class="prestige">${PRESTIGE_ICON[w.prestige]||''}</div>
       <div class="info">
         <div class="name">${esc(w.name)}${w.year?` '${String(w.year).slice(-2)}`:''}${reorderTag(w)}</div>
-        <div class="meta">${esc(w.producer||'')} ${w.consumedDate?'· aperta il '+new Date(w.consumedDate).toLocaleDateString('it-IT'):''}${w.price?' · '+fmtPrice(w.price):''}</div>
+        <div class="meta">${esc(w.producer||'')} ${w.consumedDate?'· aperta il '+new Date(w.consumedDate).toLocaleDateString('it-IT'):''}${storicoSort==='riordino'&&w.price?' · pagata '+fmtPrice(w.price):''}</div>
         ${stars(w.personalRating||0)}
       </div>
     </div>`).join('') : `<div class="empty-state"><p>Nessun vino segnato "da riordinare". Aprine uno dal dettaglio e rispondi a "Lo riordineresti?".</p></div>`);
@@ -733,95 +749,124 @@ function renderConsumati(main){
 let storicoSort = 'recenti';
 function setStoricoSort(v){ storicoSort = v; render(); }
 
-function renderStats(main){
+/* ---------- DATI: statistiche, da bere presto, impostazioni (fisarmonica) ---------- */
+// Regola: un dato aggregato compare solo se è calcolato su TUTTE le bottiglie. Se manca su qualcuna, non lo mostro.
+function windowEnd(w){
+  const m = /stimata:\s*(\d{4})\s*[–-]\s*(\d{4})/.exec(w.notes||'');
+  return m ? parseInt(m[2],10) : null;
+}
+function prestoList(){
+  const key = w => windowEnd(w) || w.year || 9999;
+  return live().filter(w=>w.status==='in_cantina' && w.priority==='alta').sort((a,b)=>key(a)-key(b));
+}
+function statsHTML(){
   const active = live().filter(w=>w.status==='in_cantina');
   const consumed = live().filter(w=>w.status==='consumato');
-  const byColor = {};
-  const byRegion = {};
-  const byPriority = {alta:0,media:0,conservazione:0};
   const bottles = active.reduce((sum,w)=>sum+qtyOf(w),0);
-  active.forEach(w=>{
-    const q = qtyOf(w);
-    byColor[w.color]=(byColor[w.color]||0)+q;
-    byRegion[w.region]=(byRegion[w.region]||0)+q;
-    if(w.priority) byPriority[w.priority]=(byPriority[w.priority]||0)+q;
-  });
-  const maxRegion = Math.max(1,...Object.values(byRegion));
-
-  main.innerHTML = `
+  const bars = (title, labelOf, keys, field) => {
+    if(!active.length || !active.every(w=>w[field])) return '';   // dato incompleto: non lo mostro
+    const counts = {}; active.forEach(w=>{ const k = w[field]; counts[k] = (counts[k]||0) + qtyOf(w); });
+    const order = keys ? keys.filter(k=>counts[k]) : Object.keys(counts).sort((a,b)=>counts[b]-counts[a]);
+    const max = Math.max(1, ...Object.values(counts));
+    return `<div class="stat-block"><div class="stat-title">${title}</div>${order.map(k=>`
+      <div class="bar-row"><div class="bar-label">${esc(labelOf(k))}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${counts[k]/max*100}%;"></div></div>
+      <div class="bar-num">${counts[k]}</div></div>`).join('')}</div>`;
+  };
+  return `
     <div class="stat-block">
       <div class="stat-title">Bottiglie in cantina</div>
       <div class="stat-num">${bottles}</div>
     </div>
-    ${(()=>{ const priced = active.filter(w=>w.price>0); if(!priced.length) return ''; const tot = priced.reduce((sum,w)=>sum+w.price*qtyOf(w),0); const nb = priced.reduce((sum,w)=>sum+qtyOf(w),0); return `<div class="stat-block"><div class="stat-title">Valore in cantina</div><div class="stat-num">${Math.round(tot).toLocaleString('it-IT')} €</div><div class="stat-title" style="margin:10px 0 0;">su ${nb} bottiglie con prezzo, ${bottles-nb} senza</div></div>`; })()}
-    <div class="stat-block">
-      <div class="stat-title">Per priorità</div>
-      ${['alta','media','conservazione'].map(p=>`
-        <div class="bar-row">
-          <div class="bar-label">${PRIORITY_LABEL[p]}</div>
-          <div class="bar-track"><div class="bar-fill" style="width:${bottles?byPriority[p]/bottles*100:0}%;"></div></div>
-          <div class="bar-num">${byPriority[p]}</div>
-        </div>`).join('')}
-    </div>
-    <div class="stat-block">
-      <div class="stat-title">Per regione</div>
-      ${Object.keys(byRegion).sort((a,b)=>byRegion[b]-byRegion[a]).map(r=>`
-        <div class="bar-row">
-          <div class="bar-label">${esc(r)}</div>
-          <div class="bar-track"><div class="bar-fill" style="width:${byRegion[r]/maxRegion*100}%;"></div></div>
-          <div class="bar-num">${byRegion[r]}</div>
-        </div>`).join('')}
-    </div>
+    ${bars('Per colore', k=>COLOR_TAB_LABEL[k]||k, ['rosso','bianco','bollicina'], 'color')}
+    ${bars('Per priorità', k=>PRIORITY_LABEL[k]||k, ['alta','media','conservazione'], 'priority')}
+    ${bars('Per regione', k=>k, null, 'region')}
     <div class="stat-block">
       <div class="stat-title">Bottiglie aperte (storico)</div>
       <div class="stat-num">${consumed.length}</div>
-      ${(()=>{ const r = consumed.filter(w=>w.personalRating>0); return r.length ? `<div class="stat-title" style="margin-top:10px;">Voto medio (${r.length} votate) · da riordinare: ${consumed.filter(w=>w.reorder==='si').length}</div><div class="mini-stars" style="font-size:18px;">${(r.reduce((s,w)=>s+w.personalRating,0)/r.length).toFixed(1)} ★</div>` : ''; })()}
-    </div>
-  `;
+      <div class="stat-title" style="margin:10px 0 0;">Da riordinare: ${consumed.filter(w=>w.reorder==='si').length}</div>
+    </div>`;
+}
+function prestoHTML(list){
+  if(!list.length) return `<div class="empty-state"><p>Niente di urgente: nessuna bottiglia è in fase finale.</p></div>`;
+  return list.map(w=>cardHTML(w,{noBadge:true, meta: windowEnd(w) ? 'entro il '+windowEnd(w) : ''})).join('');
+}
+function setDati(k){ datiOpen = datiOpen===k ? null : k; render(); }
+function renderDati(main){
+  const presto = prestoList();
+  const row = (key, label, body) => `<button class="acc-head" onclick="setDati('${key}')"><span>${label}</span><span class="acc-ic">${datiOpen===key?'−':'+'}</span></button>` +
+    (datiOpen===key ? `<div class="acc-body">${body}</div>` : '');
+  main.innerHTML = row('stats','Statistiche', statsHTML()) +
+    row('presto', `Da bere presto · ${presto.length}`, prestoHTML(presto)) +
+    `<button class="acc-head" onclick="openSettings()"><span>Impostazioni</span><span class="acc-ic">›</span></button>`;
 }
 
-/* ---------- ABBINA (pairing) ---------- */
-function renderAbbina(main){
+/* ---------- STASERA: cosa apro + abbinamento al piatto ---------- */
+function renderStasera(main){
   main.innerHTML = `
-    <div class="region-label">Cosa mangi stasera?</div>
+    <button class="btn btn-primary btn-big" id="tonight-btn" onclick="openTonight()">Cosa apro stasera</button>
+    <div id="tonight-result"></div>
+    <div class="region-label">Oppure dimmi cosa mangi</div>
     <textarea class="forminput" id="dish-input" placeholder="es. tagliata di manzo con rucola e grana"></textarea>
-    <button class="btn btn-primary" onclick="pairDish()">Suggerisci vini dalla cantina</button>
+    <button class="btn btn-secondary" id="pair-btn" onclick="pairDish()">Abbina al piatto</button>
     <div id="pair-result"></div>
   `;
 }
-async function pairDish(){
-  const dish = document.getElementById('dish-input').value.trim();
-  if(!dish){ toast('Scrivi prima cosa mangi'); return; }
-  const resultEl = document.getElementById('pair-result');
-  resultEl.innerHTML = `<div class="ai-box"><span class="ai-loading">Il sommelier sta scegliendo…</span></div>`;
-
-  const cellar = live().filter(w=>w.status==='in_cantina').map(w=>({
-    id:w.id,name:w.name,producer:w.producer,type:w.type,region:w.region,priority:w.priority,color:w.color,bottiglie:qtyOf(w)
+function cellarForAI(){
+  return live().filter(w=>w.status==='in_cantina').map(w=>({
+    id:w.id,name:w.name,producer:w.producer,year:w.year||null,type:w.type,region:w.region,priority:w.priority,color:w.color,bottiglie:qtyOf(w),finestra:windowEnd(w)||undefined
   }));
-
+}
+function suggestionCards(el, items, note){
+  el.innerHTML = items.map(s=>{
+    const w = byId(s.id);
+    if(!w) return '';
+    return `<div class="card c-${w.color||'rosso'}" onclick="openDetail('${w.id}')" style="margin-top:12px;">
+      <div class="prestige">${PRESTIGE_ICON[w.prestige]||''}</div>
+      <div class="info">
+        <div class="name">${esc(w.name)}${w.year?` '${String(w.year).slice(-2)}`:''}</div>
+        <div class="meta">${esc(s.reason)}</div>
+      </div>
+    </div>`;
+  }).join('') + (note ? `<div class="tonight-note">${esc(note)}</div>` : '');
+}
+// Senza AI (offline o errore): prima le bottiglie "da bere presto", poi le più vecchie.
+function localTonight(){
+  const rank = {alta:0, media:1, conservazione:2};
+  return live().filter(w=>w.status==='in_cantina')
+    .sort((a,b)=>(rank[a.priority] ?? 1)-(rank[b.priority] ?? 1) || (a.year||9999)-(b.year||9999))
+    .slice(0,2)
+    .map(w=>({id:w.id, reason: w.priority==='alta' ? 'Da bere presto: è nella fase finale.' : 'Tra le più mature della cantina.'}));
+}
+async function suggestWines(dish, resultEl, btn){
+  if(btn) btn.disabled = true;
+  resultEl.innerHTML = `<div class="ai-box"><span class="ai-loading">Il sommelier sta scegliendo…</span></div>`;
   try{
-    const text = await callAI('pair', {dish, cellar});
+    const text = await callAI('pair', {dish, cellar: cellarForAI()});
     let parsed;
     try{ const m = text.match(/\{[\s\S]*\}/); parsed = JSON.parse(m ? m[0] : text); }catch(e){ parsed = null; }
-
-    if(parsed && parsed.suggestions){
-      resultEl.innerHTML = parsed.suggestions.map(s=>{
-        const w = byId(s.id);
-        if(!w) return '';
-        return `<div class="card c-${w.color||'rosso'}" onclick="openDetail('${w.id}')" style="margin-top:12px;">
-          <div class="prestige">${PRESTIGE_ICON[w.prestige]||''}</div>
-          <div class="info">
-            <div class="name">${esc(w.name)}</div>
-            <div class="meta">${esc(s.reason)}</div>
-          </div>
-        </div>`;
-      }).join('');
+    if(parsed && Array.isArray(parsed.suggestions) && parsed.suggestions.length){
+      suggestionCards(resultEl, parsed.suggestions);
     } else {
       resultEl.innerHTML = `<div class="ai-box">${escapeHTML(text)}</div>`;
     }
   }catch(e){
-    resultEl.innerHTML = `<div class="ai-box">Non sono riuscito a contattare il sommelier AI. ${escapeHTML(e.message||'')}</div>`;
+    if(!dish){
+      suggestionCards(resultEl, localTonight(), 'Scelta senza AI (non riesco a contattare il sommelier): ho preso le bottiglie più urgenti.');
+    } else {
+      resultEl.innerHTML = `<div class="ai-box">Non sono riuscito a contattare il sommelier AI. ${escapeHTML(e.message||'')}</div>`;
+    }
+  }finally{
+    if(btn) btn.disabled = false;
   }
+}
+function openTonight(){
+  suggestWines('', document.getElementById('tonight-result'), document.getElementById('tonight-btn'));
+}
+function pairDish(){
+  const dish = document.getElementById('dish-input').value.trim();
+  if(!dish){ toast('Scrivi prima cosa mangi'); return; }
+  suggestWines(dish, document.getElementById('pair-result'), document.getElementById('pair-btn'));
 }
 
 /* ---------- DETAIL SHEET ---------- */
@@ -1059,7 +1104,7 @@ function applyAIFields(data){
   const pr = parsePrice(data.price);
   if(pr) put('f-price', pr.toFixed(2).replace('.',','));
   // valori ammessi dai menu: un valore inatteso dall'AI non deve mai rompere il modulo
-  if(['rosso','bianco','rosato','bollicina'].includes(data.color)) put('f-color', data.color, true);
+  if(['rosso','bianco','bollicina'].includes(data.color)) put('f-color', data.color, true);
   if(['alta','media','conservazione'].includes(data.priority)) put('f-priority', data.priority, true);
   if(['quotidiano','buono','pregiato','icona'].includes(data.prestige)) put('f-prestige', data.prestige, true);
   put('f-temp', data.temp, true);
@@ -1122,7 +1167,7 @@ function saveNewWine(){
     if(dup.price == null && parsePrice(document.getElementById('f-price').value)) dup.price = parsePrice(document.getElementById('f-price').value);
     commit(dup);
     closeSheet('add-overlay');
-    currentTab = dup.color;
+    currentTab = 'cantina'; colorFilter = null;
     render();
     toast(`${dup.name}: ora ${dup.qty} bottiglie`);
     return;
@@ -1151,7 +1196,7 @@ function saveNewWine(){
   state.wines.push(w);
   commit(w);
   closeSheet('add-overlay');
-  currentTab = w.color;
+  currentTab = 'cantina'; colorFilter = null;
   render();
   toast(qty>1 ? `${name}: ${qty} bottiglie aggiunte` : `${name} aggiunta alla cantina`);
 }
@@ -1265,7 +1310,7 @@ function setSyncStatus(s, detail){
   syncDetail = detail || '';
   const dot = document.getElementById('sync-dot');
   if(dot){
-    dot.className = s;
+    dot.className = 'hdr-btn ' + s;
     dot.title = SYNC_LABEL[s] + (syncDetail ? ' — ' + syncDetail : '');
   }
   if(!state.wines.length) render();   // aggiorna il messaggio dello stato vuoto
@@ -1354,7 +1399,7 @@ async function sync(){
       if(!needsPush){
         state.rev = baseRev; state.dirty = false; state.lastSyncAt = Date.now();
         persistLocal();
-        if(changed && currentTab !== 'abbina') render();
+        if(changed && currentTab !== 'stasera') render();
         setSyncStatus('synced');
         return;
       }
@@ -1367,7 +1412,7 @@ async function sync(){
         state.rev = p.json.rev; state.lastSyncAt = Date.now();
         state.dirty = state.changeSeq !== seq;   // altre modifiche arrivate durante il salvataggio?
         persistLocal();
-        if(currentTab !== 'abbina') render();
+        if(currentTab !== 'stasera') render();
         setSyncStatus(state.dirty ? 'pending' : 'synced');
         if(state.dirty) scheduleSync();
         return;
