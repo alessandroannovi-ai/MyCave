@@ -1,11 +1,15 @@
 // Cambiare VERSION a ogni release forza l'aggiornamento del service worker sui telefoni.
-const VERSION = '2.1.0';
+const VERSION = '2.2.0';
 const CACHE_NAME = 'mycave-' + VERSION;
 const SHELL = [
   '/index.html',
   '/manifest.json',
   '/icons/icon-192.png',
-  '/icons/icon-512.png'
+  '/icons/icon-512.png',
+  '/fonts/inter-tight-400.woff2',
+  '/fonts/inter-tight-500.woff2',
+  '/fonts/inter-tight-600.woff2',
+  '/fonts/inter-tight-700.woff2'
 ];
 
 self.addEventListener('install', (event) => {

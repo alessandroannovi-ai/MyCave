@@ -6,16 +6,13 @@
 <title>MyCave — Cantina Marmoreto</title>
 
 <link rel="manifest" href="/manifest.json">
-<meta name="theme-color" content="#0d0d0f">
+<meta name="theme-color" content="#0a0a0a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="MyCave">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <link rel="icon" href="/icons/icon-192.png">
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
 
 <style>
   :root{
@@ -175,7 +172,7 @@
   .opt.on{border-color:var(--gold);color:var(--gold);}
   .rate-block{margin:6px 0 14px;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:var(--bg-card);}
   .rate-title{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--gold-dim);}
-  .forminput.ai-guess{box-shadow:0 0 0 1px var(--gold-dim);}
+  .forminput.ai-guess{box-shadow:0 0 0 1px var(--gold);}
   .seg{display:flex;gap:8px;margin:0 0 12px;}
 
   .btn{
@@ -230,50 +227,69 @@
   }
   .toast.show{opacity:1;}
 
-  /* ===== RITOCCO GRAFICO (2.1): solo aspetto, nessuna logica. Per tornare al look precedente basta togliere questo blocco. ===== */
-  :root{--gold:#d1b25a;--hair:rgba(255,255,255,.07);--bg-card:#1b1a1f;}
-  html{background:#0b0b0d;}
-  body{background:radial-gradient(130% 55% at 50% -8%, #1d1722 0%, #0b0b0d 62%) fixed;}
+  /* ===== TEMA "NOTTE SVIZZERA" (2.2): nero, tipografia Inter Tight, un solo accento rosso Campari ===== */
+  @font-face{font-family:'Inter Tight';font-weight:400;font-display:swap;src:url('/fonts/inter-tight-400.woff2') format('woff2');}
+  @font-face{font-family:'Inter Tight';font-weight:500;font-display:swap;src:url('/fonts/inter-tight-500.woff2') format('woff2');}
+  @font-face{font-family:'Inter Tight';font-weight:600;font-display:swap;src:url('/fonts/inter-tight-600.woff2') format('woff2');}
+  @font-face{font-family:'Inter Tight';font-weight:700;font-display:swap;src:url('/fonts/inter-tight-700.woff2') format('woff2');}
+  :root{--bg:#0a0a0a;--bg-raised:#141414;--bg-card:#111;--gold:#ff4a2a;--gold-dim:#7d7a74;--ruby:#ff4a2a;--cream:#f1efe9;--cream-dim:#8e8b84;--line:#232323;--hair:rgba(255,255,255,.12);--sheet-radius:20px;}
+  html,body{background:#0a0a0a!important;}
+  body,button,input,select,textarea{font-family:'Inter Tight',system-ui,-apple-system,sans-serif!important;}
+  h1,h2,h3,.serif,.card .name,.stat-num{font-family:'Inter Tight',system-ui,-apple-system,sans-serif!important;}
   header{position:relative;padding-bottom:14px;}
-  header::after{content:'';position:absolute;left:20px;right:20px;bottom:0;height:1px;background:linear-gradient(90deg,rgba(209,178,90,.5),rgba(209,178,90,0) 75%);}
-  header h1{font-size:32px;font-weight:500;letter-spacing:.6px;line-height:1.05;}
-  header .subtitle{font-size:10px;letter-spacing:3px;}
+  header::after{content:'';position:absolute;left:20px;right:20px;bottom:0;height:1px;background:rgba(255,255,255,.9);}
+  header h1{font-size:46px!important;font-weight:700!important;letter-spacing:-2px!important;line-height:.95!important;}
+  header .subtitle{color:#ff4a2a!important;letter-spacing:2.6px!important;font-size:9.5px!important;font-weight:600;}
+  #search-btn{color:#f1efe9!important;}
   #tabs{padding-top:12px;}
-  .tab{background:transparent;border:1px solid var(--hair);font-size:12.5px;letter-spacing:.4px;padding:7px 14px;}
-  .tab.active{background:rgba(209,178,90,.12);border-color:rgba(209,178,90,.55);color:var(--gold);}
-  .chip{background:transparent;border:1px solid var(--hair);letter-spacing:.4px;}
-  .chip.active{background:rgba(155,35,53,.3);border-color:rgba(200,70,90,.6);color:#f4cfd5;}
-  .region-label{display:flex;align-items:center;gap:12px;letter-spacing:2.6px;}
-  .region-label::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--hair),transparent);}
-  .card{position:relative;background:linear-gradient(180deg,#1e1d22 0%,#18171b 100%);border:1px solid var(--hair);border-radius:18px;padding:15px 16px 15px 20px;box-shadow:0 1px 0 rgba(255,255,255,.03) inset,0 10px 22px -14px rgba(0,0,0,.9);transition:transform .12s ease,border-color .2s;}
-  .card:active{transform:scale(.985);border-color:rgba(209,178,90,.35);}
-  .card::before{content:'';position:absolute;left:0;top:14px;bottom:14px;width:3px;border-radius:0 3px 3px 0;background:var(--wine,#a02a3c);}
-  .card.c-rosso{--wine:#a02a3c;} .card.c-bianco{--wine:#d9c27a;} .card.c-rosato{--wine:#d98f9b;} .card.c-bollicina{--wine:#bfd0a8;}
-  .card .name{font-size:18px;font-weight:600;letter-spacing:.2px;}
-  .card .badge{font-size:9px;letter-spacing:.9px;padding:4px 8px;border-radius:999px;font-weight:600;white-space:normal;text-align:center;line-height:1.25;max-width:80px;}
-  #fab{width:54px;height:54px;font-size:26px;font-weight:300;bottom:calc(86px + var(--safe-bottom));background:linear-gradient(145deg,#e3c76f,#b8973f);box-shadow:0 12px 28px -8px rgba(209,178,90,.5),0 1px 0 rgba(255,255,255,.3) inset;transition:transform .12s;}
+  .tab{background:transparent!important;border:0!important;border-radius:0!important;border-bottom:2px solid transparent!important;padding:6px 1px!important;margin-right:14px;font-size:12.5px!important;color:#8e8b84!important;text-transform:uppercase;letter-spacing:1.2px!important;font-weight:600;}
+  .tab.active{color:#f1efe9!important;border-bottom-color:#ff4a2a!important;background:transparent!important;}
+  .chip{background:transparent!important;border:1px solid rgba(255,255,255,.22)!important;color:#f1efe9!important;border-radius:2px!important;font-size:11px!important;text-transform:uppercase;letter-spacing:1px!important;}
+  .chip.active{background:#ff4a2a!important;color:#0a0a0a!important;border-color:#ff4a2a!important;font-weight:700;}
+  .region-label{color:#8e8b84!important;letter-spacing:2.4px!important;font-weight:600;font-size:10px!important;margin:26px 0 4px!important;}
+  .card{position:relative;background:transparent!important;border:0!important;border-bottom:1px solid var(--hair)!important;border-radius:0!important;box-shadow:none!important;padding:18px 0 18px 14px!important;margin-bottom:0!important;}
+  .card:active{background:rgba(255,255,255,.05)!important;}
+  .card::before{content:'';position:absolute;left:0;top:18px;bottom:18px;width:2px;background:var(--wine,#ff4a2a);}
+  .card.c-rosso{--wine:#ff4a2a;} .card.c-bianco{--wine:#e9e0b8;} .card.c-rosato{--wine:#f0a3b5;} .card.c-bollicina{--wine:#cfe3b4;}
+  .card .prestige{display:none!important;}
+  .card .name{font-size:19px!important;font-weight:600!important;letter-spacing:-.4px!important;line-height:1.15!important;}
+  .card .meta{color:#8e8b84!important;font-size:12px!important;}
+  .card .badge{background:transparent!important;padding:0!important;border:0!important;letter-spacing:1.4px!important;font-weight:600!important;font-size:9.5px!important;max-width:84px!important;text-align:right!important;white-space:normal!important;line-height:1.25!important;}
+  .badge.alta{color:#ff4a2a!important;} .badge.media{color:#f1efe9!important;} .badge.conservazione{color:#8e8b84!important;}
+  .tag-reorder{border-radius:2px;border-color:#ff4a2a;color:#ff4a2a;letter-spacing:1.4px;font-weight:600;}
+  #fab{background:#ff4a2a!important;color:#0a0a0a!important;box-shadow:none!important;border-radius:50%!important;width:56px;height:56px;font-weight:400;bottom:calc(86px + var(--safe-bottom));transition:transform .12s;}
   #fab:active{transform:scale(.94);}
-  #bottomnav{background:rgba(11,11,13,.82);-webkit-backdrop-filter:blur(18px) saturate(1.2);backdrop-filter:blur(18px) saturate(1.2);border-top:1px solid var(--hair);}
-  #bottomnav button{position:relative;font-size:9.5px;letter-spacing:.9px;text-transform:uppercase;gap:4px;}
+  #bottomnav{background:rgba(10,10,10,.92)!important;-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);border-top:1px solid rgba(255,255,255,.12)!important;}
+  #bottomnav button{position:relative;font-size:9.5px;letter-spacing:1px;text-transform:uppercase;gap:4px;}
   #bottomnav button .ic{height:22px;display:flex;align-items:center;justify-content:center;font-size:18px;}
-  #bottomnav button.active::before{content:'';position:absolute;top:-9px;left:50%;width:18px;height:2px;margin-left:-9px;border-radius:2px;background:var(--gold);box-shadow:0 0 10px rgba(209,178,90,.6);}
-  .sheet-overlay{background:rgba(5,5,7,.62);-webkit-backdrop-filter:blur(5px);backdrop-filter:blur(5px);}
-  .sheet{background:linear-gradient(180deg,#1b1a1f,#141317);border-top:1px solid var(--hair);box-shadow:0 -20px 50px -10px rgba(0,0,0,.6);}
-  .sheet-handle{width:40px;background:rgba(255,255,255,.14);}
-  .sheet h2{font-size:30px;font-weight:500;letter-spacing:.3px;line-height:1.1;}
-  .sheet-close{background:rgba(255,255,255,.07);box-shadow:none;}
-  .btn{border-radius:14px;padding:14px;letter-spacing:.4px;transition:transform .12s;}
+  #bottomnav button.active{color:#ff4a2a!important;}
+  #bottomnav button.active::before{content:'';position:absolute;top:-9px;left:50%;width:22px;height:2px;margin-left:-11px;background:#ff4a2a;}
+  .sheet-overlay{background:rgba(0,0,0,.6)!important;-webkit-backdrop-filter:blur(5px);backdrop-filter:blur(5px);}
+  .sheet{background:#0f0f0f!important;border-top:1px solid rgba(255,255,255,.14)!important;box-shadow:none!important;}
+  .sheet-handle{width:40px;background:rgba(255,255,255,.18)!important;}
+  .sheet h2{font-size:34px!important;letter-spacing:-1.2px!important;font-weight:700!important;line-height:1.05!important;}
+  .sheet-sub{color:#ff4a2a!important;letter-spacing:.3px;}
+  .sheet-close{background:#f1efe9!important;color:#0a0a0a!important;box-shadow:none!important;}
+  .field-row{border-color:rgba(255,255,255,.12)!important;}
+  .rate-block{background:transparent!important;border:1px solid rgba(255,255,255,.2)!important;border-radius:2px!important;}
+  .rate-title,label.formlabel,.stat-title{color:#8e8b84!important;letter-spacing:1.8px!important;font-weight:600;}
+  .stars span.on{color:#ff4a2a!important;} .stars span{color:#2a2a2a!important;}
+  .mini-stars{color:#ff4a2a;} .mini-stars .off{color:#2a2a2a;}
+  .opt{background:transparent!important;border:1px solid rgba(255,255,255,.22)!important;border-radius:2px!important;color:#f1efe9!important;}
+  .opt.on{background:#ff4a2a!important;color:#0a0a0a!important;border-color:#ff4a2a!important;font-weight:700;}
+  .seg .opt{flex:0 0 auto;min-width:0;padding:8px 14px;font-size:12px;letter-spacing:.8px;text-transform:uppercase;}
+  .btn{border-radius:2px!important;transition:transform .12s;}
   .btn:active{transform:scale(.985);}
-  .btn-primary{background:linear-gradient(145deg,#e3c76f,#bf9d42);color:#16130a;}
-  input.forminput,select.forminput,textarea.forminput{font-size:16px;border-color:var(--hair);}
-  input.forminput:focus,select.forminput:focus,textarea.forminput:focus{outline:none;border-color:rgba(209,178,90,.6);}
-  .stat-block{background:linear-gradient(180deg,#1e1d22,#18171b);border-color:var(--hair);border-radius:18px;}
-  .stat-num{font-weight:500;font-size:42px;}
-  .bar-fill{background:linear-gradient(90deg,#b8973f,#e3c76f);}
-  .rate-block{background:linear-gradient(180deg,#1e1d22,#18171b);border-color:var(--hair);border-radius:16px;}
-  .card .badge{max-width:98px;padding:4px 10px;}
-  .seg .opt{flex:0 0 auto;min-width:0;padding:8px 14px;border-radius:999px;font-size:12.5px;letter-spacing:.3px;}
-  .photo-slot{aspect-ratio:auto;height:104px;border-radius:16px;border:1.5px dashed rgba(209,178,90,.35);color:var(--gold);font-size:13px;letter-spacing:.4px;}
+  .btn-primary{background:#f1efe9!important;color:#0a0a0a!important;text-transform:uppercase;letter-spacing:1.6px!important;font-size:12.5px!important;}
+  .btn-secondary{background:transparent!important;border:1px solid rgba(255,255,255,.25)!important;}
+  input.forminput,select.forminput,textarea.forminput{font-size:16px;border-color:rgba(255,255,255,.16)!important;border-radius:2px!important;background:#111!important;}
+  input.forminput:focus,select.forminput:focus,textarea.forminput:focus{outline:none;border-color:#ff4a2a!important;}
+  .photo-slot{aspect-ratio:auto;height:104px;border-radius:2px;border:1.5px dashed rgba(255,74,42,.55);color:#ff4a2a;font-size:12.5px;letter-spacing:1px;text-transform:uppercase;font-weight:600;}
+  .stat-block{background:#111!important;border:1px solid rgba(255,255,255,.12)!important;border-radius:2px!important;}
+  .stat-num{font-weight:700!important;font-size:42px!important;letter-spacing:-1.5px;}
+  .bar-fill{background:#ff4a2a!important;border-radius:0!important;} .bar-track{border-radius:0!important;}
+  .ai-box{background:#161616!important;border:0!important;border-radius:2px!important;}
+  .toast{background:#f1efe9!important;color:#0a0a0a!important;border-radius:2px!important;}
 </style>
 </head>
 <body>
@@ -336,7 +352,7 @@
     <button class="sheet-close" onclick="closeSheet('add-overlay')">✕</button>
     <div class="sheet-handle"></div>
     <h2>Nuova bottiglia</h2>
-    <div class="sheet-sub">Fotografa l'etichetta: i campi si compilano da soli. I riquadri con bordo oro sono stime dell'AI, controllali.</div>
+    <div class="sheet-sub">Fotografa l'etichetta: i campi si compilano da soli. I campi evidenziati in rosso sono stime dell'AI: controllali.</div>
 
     <div class="photo-row">
       <div class="photo-slot" id="photo-front">
@@ -441,7 +457,7 @@
    MYCAVE — stato, dati, rendering, AI
    ========================================================= */
 
-const APP_VERSION = '2.1 · 27 ott 2026';
+const APP_VERSION = '2.2 · 27 ott 2026';
 const LS_KEY = 'mycave_v2';   // copia locale (cache) + stato di sincronizzazione
 const PIN_KEY = 'mycave_pin';
 
@@ -987,7 +1003,7 @@ async function recognizeLabel(){
     const wf = Number(data.window && data.window.from), wt = Number(data.window && data.window.to);
     if(wf > 1900 && wt >= wf) parts.push(`Finestra di consumo stimata: ${wf}–${wt} (stima AI)`);
     if(parts.length) put('f-notes', parts.join('\n'), false);
-    toast('Letto dall\'etichetta. I riquadri con bordo oro sono stime: controllali.');
+    toast('Letto dall\'etichetta. I campi in rosso sono stime: controllali.');
   }catch(e){
     if(seq !== recogSeq) return;
     if(e && e.message === 'PIN richiesto') return;
