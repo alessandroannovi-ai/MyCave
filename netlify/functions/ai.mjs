@@ -1,6 +1,6 @@
 // /.netlify/functions/ai — proxy server-side verso l'API Anthropic.
 // La chiave resta in ANTHROPIC_API_KEY su Netlify e non arriva mai al client.
-// Modalità (campo "mode"): describe | sommelier | pair | recognize
+// Modalità (campo "mode"): describe | sommelier | pair | recognize (foto) | parse (testo o voce)
 
 const MODEL = 'claude-sonnet-5-5';
 const ANTHROPIC_VERSION = '2023-06-01';
@@ -55,31 +55,48 @@ export default async (req) => {
       maxTokens = 600;
       break;
 
-    case 'recognize': {
+    case 'recognize':
+    case 'parse': {
       const today = new Date().toISOString().slice(0, 10);
-      system = [
-        'Sei un sommelier esperto. Ricevi una o più foto di un\'etichetta di vino (fronte e/o retro).',
-        'L\'immagine può essere anche lo screenshot di un\'app o di un sito di vini (per esempio Vivino): in quel caso leggi i dati del vino mostrato e ignora prezzo, voti e pulsanti.',
+      const common = [
         `Oggi è il ${today}.`,
         'Rispondi SOLO con JSON puro, senza markdown, con questo schema esatto:',
-        '{"name":"","producer":"","label":"","year":null,"region":"","type":"","alcohol":"","notes":"","color":"","priority":"","prestige":"","temp":"","window":{"from":null,"to":null}}',
-        'CAMPI LETTI DALL\'ETICHETTA (name, producer, label, year, region, type, alcohol, notes): usa null se non sono leggibili, mai inventare.',
+        '{"name":"","producer":"","label":"","year":null,"region":"","type":"","alcohol":"","notes":"","qty":null,"price":null,"color":"","priority":"","prestige":"","temp":"","window":{"from":null,"to":null}}',
+        'CAMPI LETTI O DETTI (name, producer, label, year, region, type, alcohol, notes, qty, price): usa null se non sono leggibili o non sono stati detti, mai inventare.',
         '- name: nome del vino come appare (es. "Chianti Classico"); producer: la cantina; label: linea o riserva se presente; year: annata come numero, null se NV o assente.',
         '- region: regione italiana in minuscolo (es. toscana), per vini esteri la regione o il paese in minuscolo; type: denominazione o tipologia.',
-        '- notes: vitigni, zona e indicazioni utili lette in etichetta, massimo 200 caratteri.',
-        'CAMPI STIMATI DA TE (color, priority, prestige, temp, window): rispondi sempre, anche se non sono scritti in etichetta, usando la tua competenza.',
+        '- notes: vitigni, zona e indicazioni utili, massimo 200 caratteri.',
+        '- qty: numero intero di bottiglie solo se indicato, altrimenti null.',
+        '- price: prezzo di UNA bottiglia in euro, come numero (es. 34.33), solo se indicato. Se il prezzo è dato per più bottiglie ("68 euro in tutto") dividi per qty. Altrimenti null.',
+        'CAMPI STIMATI DA TE (color, priority, prestige, temp, window): rispondi sempre, anche se non sono scritti, usando la tua competenza.',
         '- color: esattamente uno tra rosso, bianco, rosato, bollicina.',
         '- prestige: esattamente uno tra quotidiano (vino da tutti i giorni), buono (buon vino di denominazione, produttore solido), pregiato (denominazione importante, produttore di livello, riserve, cru), icona (etichette da collezione, grandi nomi).',
         '- window: anni di inizio e fine della finestra di consumo ottimale, in base ad annata, tipologia e produttore; senza annata usa null.',
         '- priority: esattamente uno tra alta (oggi è già nella finestra ed è oltre metà o vicino alla fine: da bere presto), media (oggi è dentro la finestra ottimale), conservazione (oggi è prima della finestra o è un vino da lungo invecchiamento). Senza annata usa media.',
         '- temp: temperatura di servizio nel formato "16–18°C".'
-      ].join('\n');
-      const images = (payload.images || []).slice(0, 2).map((img) => ({
-        type: 'image',
-        source: { type: 'base64', media_type: img.mediaType || 'image/jpeg', data: img.data }
-      }));
-      if (!images.length) return json(400, { error: 'Nessuna immagine ricevuta' });
-      messages = [{ role: 'user', content: [...images, { type: 'text', text: 'Leggi questa etichetta e restituisci i dati nello schema richiesto.' }] }];
+      ];
+      if (mode === 'recognize') {
+        system = [
+          'Sei un sommelier esperto. Ricevi una o più foto di un\'etichetta di vino (fronte e/o retro).',
+          'L\'immagine può essere anche lo screenshot di un\'app o di un sito di vini (per esempio Vivino): in quel caso leggi i dati del vino mostrato e ignora voti e pulsanti; il prezzo vale solo se è chiaramente quello di una bottiglia.',
+          ...common
+        ].join('\n');
+        const images = (payload.images || []).slice(0, 2).map((img) => ({
+          type: 'image',
+          source: { type: 'base64', media_type: img.mediaType || 'image/jpeg', data: img.data }
+        }));
+        if (!images.length) return json(400, { error: 'Nessuna immagine ricevuta' });
+        messages = [{ role: 'user', content: [...images, { type: 'text', text: 'Leggi questa etichetta e restituisci i dati nello schema richiesto.' }] }];
+      } else {
+        const text = String(payload.text || '').trim().slice(0, 800);
+        if (!text) return json(400, { error: 'Nessun testo ricevuto' });
+        system = [
+          'Sei un sommelier esperto. Ricevi la descrizione, scritta o dettata a voce in italiano, di una bottiglia di vino da inserire in cantina.',
+          'Il testo può contenere errori di trascrizione: correggi i nomi evidenti di vini, cantine e denominazioni usando la tua conoscenza, ma non aggiungere dati che non sono stati detti.',
+          ...common
+        ].join('\n');
+        messages = [{ role: 'user', content: `Descrizione della bottiglia:\n${text}` }];
+      }
       maxTokens = 800;
       break;
     }

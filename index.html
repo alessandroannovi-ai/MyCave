@@ -290,6 +290,12 @@
   .bar-fill{background:#ff4a2a!important;border-radius:0!important;} .bar-track{border-radius:0!important;}
   .ai-box{background:#161616!important;border:0!important;border-radius:2px!important;}
   .toast{background:#f1efe9!important;color:#0a0a0a!important;border-radius:2px!important;}
+  #sync-status{color:var(--cream-dim)!important;} #sync-status.bad{color:#ff4a2a!important;}
+  .quick-box{margin:4px 0 14px;padding:14px;border:1px solid rgba(255,255,255,.16);border-radius:2px;}
+  .quick-box textarea{min-height:84px;}
+  .quick-hint{font-size:12px;color:var(--cream-dim);line-height:1.45;margin-top:8px;}
+  .price-input{width:96px;text-align:right;background:transparent;border:0;border-bottom:1px solid rgba(255,255,255,.25);color:#f1efe9;font:inherit;font-size:16px;padding:4px 0;border-radius:0;}
+  .price-input:focus{outline:none;border-bottom-color:#ff4a2a;}
   .qty-tag{margin-left:8px;font-size:11px;font-weight:700;letter-spacing:.6px;color:#ff4a2a;}
   .qty-btn{width:36px;height:36px;border:1px solid rgba(255,255,255,.25);background:transparent;color:#f1efe9;border-radius:2px;font-size:18px;line-height:1;cursor:pointer;}
   .field-row .val b{display:inline-block;min-width:34px;text-align:center;font-size:16px;font-weight:600;}
@@ -356,8 +362,15 @@
     <button class="sheet-close" onclick="closeSheet('add-overlay')">✕</button>
     <div class="sheet-handle"></div>
     <h2>Nuova bottiglia</h2>
-    <div class="sheet-sub">Fotografa l'etichetta: i campi si compilano da soli. I campi evidenziati in rosso sono stime dell'AI: controllali.</div>
+    <div class="sheet-sub">Descrivi la bottiglia o fotografa l'etichetta: i campi si compilano da soli. Quelli evidenziati in rosso sono stime dell'AI: controllali.</div>
 
+    <div class="quick-box">
+      <label class="formlabel" for="f-quick" style="margin-top:0;">Descrivi la bottiglia</label>
+      <textarea class="forminput" id="f-quick" placeholder="es. 2 Animante Barone Pizzini Franciacorta Brut, 34 euro"></textarea>
+      <div class="quick-hint">Tocca il microfono sulla tastiera per dettare: nome, cantina, annata, regione, quante bottiglie e prezzo.</div>
+      <button class="btn btn-secondary" id="quick-btn" onclick="parseQuick()">Compila con AI</button>
+      <div id="quick-status" class="ai-loading" style="display:none;margin-top:8px;">Leggo la descrizione…</div>
+    </div>
     <div class="photo-row">
       <div class="photo-slot" id="photo-front">
         <span id="photo-front-label">＋ Foto fronte</span>
@@ -381,6 +394,8 @@
     <input class="forminput" id="f-year" inputmode="numeric" placeholder="es. 2021 — lascia vuoto se NV">
     <label class="formlabel">Bottiglie</label>
     <input class="forminput" id="f-qty" type="number" inputmode="numeric" min="1" max="99" value="1">
+    <label class="formlabel">Prezzo per bottiglia (€)</label>
+    <input class="forminput" id="f-price" inputmode="decimal" placeholder="es. 34,33">
     <label class="formlabel">Colore</label>
     <select class="forminput" id="f-color">
       <option value="rosso">Rosso</option>
@@ -463,7 +478,7 @@
    MYCAVE — stato, dati, rendering, AI
    ========================================================= */
 
-const APP_VERSION = '2.3 · 27 ott 2026';
+const APP_VERSION = '2.4 · 27 ott 2026';
 const LS_KEY = 'mycave_v2';   // copia locale (cache) + stato di sincronizzazione
 const PIN_KEY = 'mycave_pin';
 
@@ -710,7 +725,7 @@ function renderConsumati(main){
       <div class="prestige">${PRESTIGE_ICON[w.prestige]||''}</div>
       <div class="info">
         <div class="name">${esc(w.name)}${w.year?` '${String(w.year).slice(-2)}`:''}${reorderTag(w)}</div>
-        <div class="meta">${esc(w.producer||'')} ${w.consumedDate?'· aperta il '+new Date(w.consumedDate).toLocaleDateString('it-IT'):''}</div>
+        <div class="meta">${esc(w.producer||'')} ${w.consumedDate?'· aperta il '+new Date(w.consumedDate).toLocaleDateString('it-IT'):''}${w.price?' · '+fmtPrice(w.price):''}</div>
         ${stars(w.personalRating||0)}
       </div>
     </div>`).join('') : `<div class="empty-state"><p>Nessun vino segnato "da riordinare". Aprine uno dal dettaglio e rispondi a "Lo riordineresti?".</p></div>`);
@@ -738,6 +753,7 @@ function renderStats(main){
       <div class="stat-title">Bottiglie in cantina</div>
       <div class="stat-num">${bottles}</div>
     </div>
+    ${(()=>{ const priced = active.filter(w=>w.price>0); if(!priced.length) return ''; const tot = priced.reduce((sum,w)=>sum+w.price*qtyOf(w),0); const nb = priced.reduce((sum,w)=>sum+qtyOf(w),0); return `<div class="stat-block"><div class="stat-title">Valore in cantina</div><div class="stat-num">${Math.round(tot).toLocaleString('it-IT')} €</div><div class="stat-title" style="margin:10px 0 0;">su ${nb} bottiglie con prezzo, ${bottles-nb} senza</div></div>`; })()}
     <div class="stat-block">
       <div class="stat-title">Per priorità</div>
       ${['alta','media','conservazione'].map(p=>`
@@ -834,6 +850,7 @@ function openDetail(id){
     </div>` : ''}
 
     ${w.status==='in_cantina' ? `<div class="field-row"><span class="label">Bottiglie</span><span class="val"><button class="qty-btn" onclick="setQty('${id}',-1)">−</button><b>${qtyOf(w)}</b><button class="qty-btn" onclick="setQty('${id}',1)">+</button></span></div>` : ''}
+    <div class="field-row"><span class="label">Prezzo (€ a bottiglia)</span><span class="val"><input class="price-input" id="price-input" inputmode="decimal" placeholder="—" value="${w.price!=null ? String(w.price).replace('.',',') : ''}" onchange="savePrice('${id}',this.value)"></span></div>
     <div class="field-row"><span class="label">Tipologia</span><span class="val">${esc(w.type||'—')}</span></div>
     <div class="field-row"><span class="label">Regione</span><span class="val">${esc(w.region||'—')}</span></div>
     ${w.priority?`<div class="field-row"><span class="label">Priorità</span><span class="val">${PRIORITY_LABEL[w.priority]}</span></div>`:''}
@@ -905,6 +922,13 @@ function markConsumed(id){
   openDetail(target.id);           // resta aperta: così puoi dare subito il voto
   toast(qtyOf(w) >= 1 && target !== w ? `Aperta una bottiglia, ne restano ${qtyOf(w)}` : 'Segnata come aperta: dai un voto');
 }
+function savePrice(id, v){
+  const w = byId(id);
+  w.price = parsePrice(v);
+  commit(w);
+  toast(w.price ? 'Prezzo salvato' : 'Prezzo tolto');
+  render();
+}
 function setQty(id, delta){
   const w = byId(id);
   const n = qtyOf(w) + delta;
@@ -931,7 +955,7 @@ function closeSheet(overlayId){
 /* ---------- ADD WINE ---------- */
 function openAddSheet(){
   if(!state.wines.length){ toast('Aspetta il caricamento della cantina'); return; }
-  ['f-name','f-producer','f-label','f-year','f-region','f-type','f-temp','f-notes'].forEach(id=>document.getElementById(id).value='');
+  ['f-name','f-producer','f-label','f-year','f-region','f-type','f-temp','f-notes','f-price','f-quick'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('f-qty').value='1';
   document.getElementById('f-color').value='rosso';
   document.getElementById('f-priority').value='media';
@@ -943,13 +967,15 @@ function openAddSheet(){
   document.getElementById('photo-back-label').style.display='block';
   document.getElementById('recognize-btn').style.display='none';
   document.getElementById('recognize-status').style.display='none';
+  document.getElementById('quick-status').style.display='none';
+  document.getElementById('quick-btn').disabled = false;
   recogSeq++;                       // scarta eventuali risposte AI rimaste in volo
   formTouched.clear();
   FORM_FIELDS.forEach(id=>document.getElementById(id).classList.remove('ai-guess'));
   document.getElementById('add-overlay').classList.add('open');
 }
 // Campi che l'utente ha toccato a mano: la lettura AI non li sovrascrive mai.
-const FORM_FIELDS = ['f-name','f-producer','f-label','f-year','f-region','f-type','f-temp','f-notes','f-color','f-priority','f-prestige'];
+const FORM_FIELDS = ['f-name','f-producer','f-label','f-year','f-region','f-type','f-temp','f-notes','f-color','f-priority','f-prestige','f-qty','f-price'];
 const formTouched = new Set();
 let recogSeq = 0;
 function initFormTracking(){
@@ -1001,6 +1027,48 @@ async function handlePhoto(event, slot){
     toast('Non riesco a leggere la foto, riprova');
   }
 }
+function parsePrice(v){
+  let t = String(v==null ? '' : v).replace(/[€\s]/g,'');
+  if(!t) return null;
+  if(t.includes(',')) t = t.replace(/\./g,'').replace(',','.');
+  const n = parseFloat(t);
+  return (isFinite(n) && n > 0) ? Math.round(n*100)/100 : null;
+}
+function fmtPrice(n){ return n.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €'; }
+function readAIJson(text){
+  const m = text.match(/\{[\s\S]*\}/);
+  return JSON.parse(m ? m[0] : text);
+}
+// Mette nei campi quello che ha letto/capito l'AI. Non tocca mai i campi che hai scritto tu a mano.
+function applyAIFields(data){
+  const put = (id, val, guess) => {
+    if(val === null || val === undefined || val === '') return;
+    if(formTouched.has(id)) return;
+    const el = document.getElementById(id);
+    el.value = String(val);
+    el.classList.toggle('ai-guess', !!guess);
+  };
+  put('f-name', data.name);
+  put('f-producer', data.producer);
+  put('f-label', data.label);
+  if(/^\d{4}$/.test(String(data.year||''))) put('f-year', data.year);
+  put('f-region', data.region ? String(data.region).toLowerCase() : '');
+  put('f-type', data.type);
+  const q = Number(data.qty);
+  if(Number.isInteger(q) && q >= 1 && q <= 99) put('f-qty', q);
+  const pr = parsePrice(data.price);
+  if(pr) put('f-price', pr.toFixed(2).replace('.',','));
+  // valori ammessi dai menu: un valore inatteso dall'AI non deve mai rompere il modulo
+  if(['rosso','bianco','rosato','bollicina'].includes(data.color)) put('f-color', data.color, true);
+  if(['alta','media','conservazione'].includes(data.priority)) put('f-priority', data.priority, true);
+  if(['quotidiano','buono','pregiato','icona'].includes(data.prestige)) put('f-prestige', data.prestige, true);
+  put('f-temp', data.temp, true);
+  const parts = [];
+  if(data.notes) parts.push(String(data.notes));
+  const wf = Number(data.window && data.window.from), wt = Number(data.window && data.window.to);
+  if(wf > 1900 && wt >= wf) parts.push(`Finestra di consumo stimata: ${wf}–${wt} (stima AI)`);
+  if(parts.length) put('f-notes', parts.join('\n'), false);
+}
 async function recognizeLabel(){
   const images = [photoData.front, photoData.back].filter(Boolean);
   if(images.length===0) return;
@@ -1009,31 +1077,7 @@ async function recognizeLabel(){
   try{
     const text = await callAI('recognize', {images});
     if(seq !== recogSeq) return;     // è arrivata una foto più recente: questa risposta è vecchia
-    const m = text.match(/\{[\s\S]*\}/);
-    const data = JSON.parse(m ? m[0] : text);
-    const put = (id, val, guess) => {
-      if(val === null || val === undefined || val === '') return;
-      if(formTouched.has(id)) return;
-      const el = document.getElementById(id);
-      el.value = String(val);
-      el.classList.toggle('ai-guess', !!guess);
-    };
-    put('f-name', data.name);
-    put('f-producer', data.producer);
-    put('f-label', data.label);
-    if(/^\d{4}$/.test(String(data.year||''))) put('f-year', data.year);
-    put('f-region', data.region ? String(data.region).toLowerCase() : '');
-    put('f-type', data.type);
-    // valori ammessi dai menu: un valore inatteso dall'AI non deve mai rompere il modulo
-    if(['rosso','bianco','rosato','bollicina'].includes(data.color)) put('f-color', data.color, true);
-    if(['alta','media','conservazione'].includes(data.priority)) put('f-priority', data.priority, true);
-    if(['quotidiano','buono','pregiato','icona'].includes(data.prestige)) put('f-prestige', data.prestige, true);
-    put('f-temp', data.temp, true);
-    const parts = [];
-    if(data.notes) parts.push(String(data.notes));
-    const wf = Number(data.window && data.window.from), wt = Number(data.window && data.window.to);
-    if(wf > 1900 && wt >= wf) parts.push(`Finestra di consumo stimata: ${wf}–${wt} (stima AI)`);
-    if(parts.length) put('f-notes', parts.join('\n'), false);
+    applyAIFields(readAIJson(text));
     toast('Letto dall\'etichetta. I campi in rosso sono stime: controllali.');
   }catch(e){
     if(seq !== recogSeq) return;
@@ -1041,6 +1085,26 @@ async function recognizeLabel(){
     toast('Non sono riuscito a leggere l\'etichetta: compila a mano o riprova');
   }finally{
     if(seq === recogSeq) document.getElementById('recognize-status').style.display='none';
+  }
+}
+async function parseQuick(){
+  const text = document.getElementById('f-quick').value.trim();
+  if(!text){ toast('Scrivi o detta due righe sulla bottiglia'); return; }
+  const seq = ++recogSeq;
+  const btn = document.getElementById('quick-btn');
+  btn.disabled = true;
+  document.getElementById('quick-status').style.display='block';
+  try{
+    const out = await callAI('parse', {text});
+    if(seq !== recogSeq) return;
+    applyAIFields(readAIJson(out));
+    toast('Compilato dalla descrizione. I campi in rosso sono stime: controllali.');
+  }catch(e){
+    if(seq !== recogSeq) return;
+    if(e && e.message === 'PIN richiesto') return;
+    toast('Non sono riuscito a capire la descrizione: compila a mano o riprova');
+  }finally{
+    if(seq === recogSeq){ document.getElementById('quick-status').style.display='none'; btn.disabled = false; }
   }
 }
 function saveNewWine(){
@@ -1055,6 +1119,7 @@ function saveNewWine(){
   const dup = live().find(x => x.status==='in_cantina' && norm(x.name)===norm(name) && norm(x.producer)===norm(producerVal) && norm(x.label)===norm(labelVal) && (x.year||null)===yearNum);
   if(dup && confirm(`Hai già "${dup.name}" in cantina (${qtyOf(dup)}). Aggiungo ${qty} bottiglie alla stessa riga?`)){
     dup.qty = qtyOf(dup) + qty;
+    if(dup.price == null && parsePrice(document.getElementById('f-price').value)) dup.price = parsePrice(document.getElementById('f-price').value);
     commit(dup);
     closeSheet('add-overlay');
     currentTab = dup.color;
@@ -1077,6 +1142,7 @@ function saveNewWine(){
     notes: document.getElementById('f-notes').value.trim(),
     status: 'in_cantina',
     qty,
+    price: parsePrice(document.getElementById('f-price').value),
     personalRating: 0,
     aiDescription: null,
     addedDate: new Date().toISOString(),
@@ -1328,7 +1394,9 @@ function openSettings(){
   const l = live();
   document.getElementById('settings-count').textContent =
     l.filter(w=>w.status==='in_cantina').reduce((sum,w)=>sum+qtyOf(w),0) + ' bottiglie in cantina, ' + l.filter(w=>w.status==='consumato').length + ' aperte';
-  document.getElementById('sync-status').textContent = SYNC_LABEL[syncStatus] + (syncDetail ? ' — ' + syncDetail : '');
+  const ss = document.getElementById('sync-status');
+  ss.textContent = SYNC_LABEL[syncStatus] + (syncDetail ? ' — ' + syncDetail : '');
+  ss.classList.toggle('bad', ['offline','error','pin'].includes(syncStatus));
   document.getElementById('settings-lastsync').textContent =
     state.lastSyncAt ? new Date(state.lastSyncAt).toLocaleString('it-IT', {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'}) : 'mai';
   document.getElementById('settings-version').textContent = APP_VERSION;
