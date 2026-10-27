@@ -59,6 +59,7 @@ export default async (req) => {
       const today = new Date().toISOString().slice(0, 10);
       system = [
         'Sei un sommelier esperto. Ricevi una o più foto di un\'etichetta di vino (fronte e/o retro).',
+        'L\'immagine può essere anche lo screenshot di un\'app o di un sito di vini (per esempio Vivino): in quel caso leggi i dati del vino mostrato e ignora prezzo, voti e pulsanti.',
         `Oggi è il ${today}.`,
         'Rispondi SOLO con JSON puro, senza markdown, con questo schema esatto:',
         '{"name":"","producer":"","label":"","year":null,"region":"","type":"","alcohol":"","notes":"","color":"","priority":"","prestige":"","temp":"","window":{"from":null,"to":null}}',
