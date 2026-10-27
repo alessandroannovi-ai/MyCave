@@ -1,4 +1,6 @@
-const CACHE_NAME = 'mycave-v1';
+// Cambiare VERSION a ogni release forza l'aggiornamento del service worker sui telefoni.
+const VERSION = '2.0';
+const CACHE_NAME = 'mycave-' + VERSION;
 const SHELL = [
   '/index.html',
   '/manifest.json',

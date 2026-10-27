@@ -58,6 +58,11 @@
   header .subtitle{font-size:11px;color:var(--gold-dim);text-transform:uppercase;letter-spacing:1.5px;}
   #search-btn{background:none;border:none;color:var(--gold);font-size:20px;padding:6px;}
   #settings-btn{background:none;border:none;color:var(--cream-dim);font-size:18px;padding:6px;}
+  #sync-dot{width:9px;height:9px;border-radius:50%;background:#666;align-self:center;margin-right:8px;display:inline-block;}
+  #sync-dot.synced{background:#4f9a5a;}
+  #sync-dot.pending{background:#c9a84c;}
+  #sync-dot.offline,#sync-dot.error,#sync-dot.pin{background:#c0392b;}
+  .warn-box{background:rgba(155,35,53,.14);border:1px solid rgba(155,35,53,.35);color:#e5a0aa;border-radius:12px;padding:11px 13px;font-size:12.5px;line-height:1.5;margin:10px 0;}
 
   /* TABS */
   #tabs{
@@ -222,6 +227,7 @@
       <h1 id="header-title">MyCave</h1>
     </div>
     <div style="display:flex;gap:4px;">
+      <span id="sync-dot" onclick="openSettings()"></span>
       <button id="search-btn" onclick="toggleSearch()">⌕</button>
       <button id="settings-btn" onclick="openSettings()">⚙</button>
     </div>
@@ -247,7 +253,7 @@
 </div>
 
 <!-- PIN GATE -->
-<div class="sheet-overlay" id="pin-gate" style="align-items:center;">
+<div class="sheet-overlay" id="pin-gate" style="align-items:center;z-index:80;background:rgba(13,13,15,.97);">
   <div class="sheet" style="border-radius:22px; max-width:340px; margin:0 20px; text-align:center;">
     <h2 class="serif" style="font-size:26px;">MyCave</h2>
     <div class="sheet-sub">Inserisci il PIN per accedere alla cantina</div>
@@ -351,6 +357,11 @@
     <h2>Impostazioni</h2>
     <div class="sheet-sub" id="sync-status">—</div>
 
+    <div id="pin-warning" class="warn-box" style="display:none;">Nessun PIN impostato su Netlify: chiunque conosca l'indirizzo del sito può leggere e modificare la cantina e usare la tua chiave AI. Imposta MYCAVE_PIN nelle variabili d'ambiente.</div>
+    <button class="btn btn-secondary" onclick="syncNow()">Sincronizza ora</button>
+    <div class="field-row"><span class="label">Ultima sincronizzazione</span><span class="val" id="settings-lastsync">—</span></div>
+    <div class="field-row"><span class="label">Versione app</span><span class="val" id="settings-version">—</span></div>
+
     <label class="formlabel">Backup</label>
     <div class="field-row"><span class="label">Bottiglie totali</span><span class="val" id="settings-count">—</span></div>
     <button class="btn btn-primary" onclick="exportBackup()">Esporta backup (JSON)</button>
@@ -359,8 +370,8 @@
       <input type="file" accept="application/json" onchange="importBackup(event)" style="position:absolute;inset:0;opacity:0;">
     </button>
     <div style="font-size:12px;color:var(--cream-dim);margin-top:10px;line-height:1.5;">
-      I dati sono salvati solo su questo iPhone (localStorage). Fai un backup ogni tanto,
-      soprattutto prima di aggiornare l'app o svuotare i dati di Safari.
+      La cantina vive nel cloud: questo telefono ne tiene una copia per funzionare offline.
+      Il backup JSON è una copia di sicurezza in più, tua: scaricala ogni tanto.
     </div>
   </div>
 </div>
@@ -372,15 +383,19 @@
    MYCAVE — stato, dati, rendering, AI
    ========================================================= */
 
-const LS_KEY = 'mycave_v1';
-
-/* --- Cloud sync ---
-   I dati vivono in Netlify Blobs, richiamati tramite /.netlify/functions/data.
-   Nessuna configurazione esterna: funziona da solo una volta deployato su Netlify.
-   Se hai impostato la variabile d'ambiente MYCAVE_PIN su Netlify, l'app chiede
-   il PIN una volta e lo ricorda su questo dispositivo. */
+const APP_VERSION = '2.0 · 27 ott 2026';
+const LS_KEY = 'mycave_v2';   // copia locale (cache) + stato di sincronizzazione
 const PIN_KEY = 'mycave_pin';
-let cloudReady = true; // diventa false solo se la function non risponde proprio
+
+/* --- Come funziona la sincronizzazione ---
+   Il CLOUD (Netlify Blobs, via /.netlify/functions/data) è la fonte di verità.
+   Questo telefono tiene una copia per funzionare offline e velocemente.
+   Regole che proteggono i dati:
+   1. L'app non scrive mai sul cloud prima di aver letto il cloud.
+   2. I vini di partenza (seed) si caricano solo se il cloud è CONFERMATO vuoto.
+   3. Ogni vino ha un timestamp: a un conflitto vince la modifica più recente
+      di quel singolo vino, nessun dispositivo cancella il lavoro dell'altro.
+   4. Le eliminazioni sono "tombstone" (deleted:true), così si propagano. */
 
 const PRESTIGE_ICON = { icona:'✦', pregiato:'◆', buono:'●', quotidiano:'○' };
 const PRIORITY_LABEL = { alta:'Bevi presto', media:'Finestra ottimale', conservazione:'Da conservare' };
@@ -435,7 +450,9 @@ const SEED_CONSUMATI = [
   {id:'c7',name:"Montepulciano d'Abruzzo",producer:'Ecasella',label:'',year:2020,region:'abruzzo',type:"Montepulciano d'Abruzzo",color:'rosso'},
 ].map(w => ({...w, status:'consumato', priority:null, temp:'', notes:'Registrato durante la ricostruzione app — data di apertura non disponibile.', prestige:'buono', personalRating:0, aiDescription:null, addedDate:null, consumedDate:null}));
 
-let state = { wines: [], updatedAt: 0 };
+let state = { wines: [], rev: 0, dirty: false, changeSeq: 0, lastSyncAt: 0 };
+let syncStatus = 'init', syncDetail = '', cloudKnown = false, serverPinRequired = null;
+let syncing = false, syncAgain = false, syncTimer = null, lastSyncTry = 0;
 let currentTab = 'rosso';
 let currentPriorityFilter = null;
 let searchOpen = false;
@@ -443,19 +460,40 @@ let activeWineId = null;
 let chatContextWineId = null;
 let photoData = { front:null, back:null };
 
-/* ---------- persistence ---------- */
-function loadState(){
+/* ---------- copia locale (cache) ---------- */
+function loadLocal(){
   try{
     const raw = localStorage.getItem(LS_KEY);
-    if(raw){ state = JSON.parse(raw); return; }
+    if(raw){
+      const s = JSON.parse(raw);
+      if(s && Array.isArray(s.wines)) state = { ...state, ...s };
+    }
   }catch(e){}
-  state = { wines: [...SEED_WINES, ...SEED_CONSUMATI], updatedAt: Date.now() };
-  saveState();
 }
-function saveState(skipCloud){
-  state.updatedAt = Date.now();
-  localStorage.setItem(LS_KEY, JSON.stringify(state));
-  if(!skipCloud) pushToCloud();
+function persistLocal(){
+  try{ localStorage.setItem(LS_KEY, JSON.stringify(state)); }catch(e){}
+}
+function live(){ return state.wines.filter(w => !w.deleted); }
+// Da chiamare dopo ogni modifica a un vino: timbra il vino e mette in coda la sync.
+function commit(w){
+  if(w) w.modifiedAt = Date.now();
+  state.dirty = true;
+  state.changeSeq = (state.changeSeq || 0) + 1;
+  persistLocal();
+  setSyncStatus('pending');
+  scheduleSync();
+}
+// Vini di partenza: usati SOLO quando il cloud è confermato vuoto.
+function buildSeed(){
+  return [...SEED_WINES, ...SEED_CONSUMATI].map(w => {
+    const base = { ...w, modifiedAt: 1 };
+    if(w.id === 'w8'){
+      // Poggio Gherardo Chianti Classico 2022: bevuto il 27/10/2026 con filetto alla griglia
+      return { ...base, status: 'consumato', consumedDate: '2026-10-27T18:00:00.000Z',
+               notes: (w.notes ? w.notes + '. ' : '') + 'Bevuta il 27/10/2026 con filetto alla griglia.' };
+    }
+    return base;
+  });
 }
 
 /* ---------- utils ---------- */
@@ -465,7 +503,8 @@ function toast(msg){
   t.classList.add('show');
   setTimeout(()=>t.classList.remove('show'), 2200);
 }
-function byId(id){ return state.wines.find(w=>w.id===id); }
+function byId(id){ return live().find(w=>w.id===id); }
+const esc = (s) => escapeHTML(String(s == null ? '' : s));
 function regionsInList(list){ return [...new Set(list.map(w=>w.region).filter(Boolean))]; }
 
 /* ---------- tabs ---------- */
@@ -513,7 +552,7 @@ function render(){
 }
 
 function renderColorList(main, filtersEl, color){
-  let list = state.wines.filter(w => w.status==='in_cantina' && w.color===color);
+  let list = live().filter(w => w.status==='in_cantina' && w.color===color);
 
   const priorities = ['alta','media','conservazione'];
   filtersEl.innerHTML = priorities.map(p =>
@@ -531,6 +570,14 @@ function renderColorList(main, filtersEl, color){
     );
   }
 
+  if(!state.wines.length){
+    const msg = syncStatus==='offline' ? 'Cloud non raggiungibile.<br>Controlla la connessione: la cantina si carica appena torni online.'
+              : syncStatus==='error' ? 'Impossibile caricare la cantina.<br>Apri l\'app dall\'indirizzo Netlify (non da GitHub).'
+              : syncStatus==='pin' ? 'Inserisci il PIN per aprire la cantina.'
+              : 'Carico la cantina dal cloud…';
+    main.innerHTML = `<div class="empty-state"><div class="icon">◇</div><p>${msg}</p></div>`;
+    return;
+  }
   if(list.length===0){
     main.innerHTML = `<div class="empty-state"><div class="icon">${color==='bollicina'?'✦':'◆'}</div>
       <p>Nessuna bottiglia in "${COLOR_TAB_LABEL[color]}" al momento.<br>Tocca ＋ per aggiungerne una.</p></div>`;
@@ -542,7 +589,7 @@ function renderColorList(main, filtersEl, color){
   const regionOrder = Object.keys(byRegion).sort();
 
   main.innerHTML = regionOrder.map(region => `
-    <div class="region-label">${region}</div>
+    <div class="region-label">${esc(region)}</div>
     ${byRegion[region].map(cardHTML).join('')}
   `).join('');
 }
@@ -554,15 +601,15 @@ function cardHTML(w){
   return `<div class="card" onclick="openDetail('${w.id}')">
     <div class="prestige">${PRESTIGE_ICON[w.prestige]||''}</div>
     <div class="info">
-      <div class="name">${w.name}${w.year?` <span style="color:var(--cream-dim);font-size:14px;">'${String(w.year).slice(-2)}</span>`:''}</div>
-      <div class="meta">${w.producer||''}${w.label?' · '+w.label:''}</div>
+      <div class="name">${esc(w.name)}${w.year?` <span style="color:var(--cream-dim);font-size:14px;">'${String(w.year).slice(-2)}</span>`:''}</div>
+      <div class="meta">${esc(w.producer||'')}${w.label?' · '+esc(w.label):''}</div>
     </div>
     ${w.priority?`<span class="badge ${w.priority}">${PRIORITY_LABEL[w.priority]}</span>`:''}
   </div>`;
 }
 
 function renderConsumati(main){
-  const list = state.wines.filter(w=>w.status==='consumato').sort((a,b)=>(b.consumedDate||'').localeCompare(a.consumedDate||''));
+  const list = live().filter(w=>w.status==='consumato').sort((a,b)=>(b.consumedDate||'').localeCompare(a.consumedDate||''));
   if(list.length===0){
     main.innerHTML = `<div class="empty-state"><div class="icon">⟲</div><p>Nessuna bottiglia ancora segnata come aperta.</p></div>`;
     return;
@@ -571,15 +618,15 @@ function renderConsumati(main){
     <div class="card" onclick="openDetail('${w.id}')">
       <div class="prestige">${PRESTIGE_ICON[w.prestige]||''}</div>
       <div class="info">
-        <div class="name">${w.name}${w.year?` '${String(w.year).slice(-2)}`:''}</div>
-        <div class="meta">${w.producer||''} ${w.consumedDate?'· aperta il '+new Date(w.consumedDate).toLocaleDateString('it-IT'):''}</div>
+        <div class="name">${esc(w.name)}${w.year?` '${String(w.year).slice(-2)}`:''}</div>
+        <div class="meta">${esc(w.producer||'')} ${w.consumedDate?'· aperta il '+new Date(w.consumedDate).toLocaleDateString('it-IT'):''}</div>
       </div>
     </div>`).join('');
 }
 
 function renderStats(main){
-  const active = state.wines.filter(w=>w.status==='in_cantina');
-  const consumed = state.wines.filter(w=>w.status==='consumato');
+  const active = live().filter(w=>w.status==='in_cantina');
+  const consumed = live().filter(w=>w.status==='consumato');
   const byColor = {};
   const byRegion = {};
   const byPriority = {alta:0,media:0,conservazione:0};
@@ -608,7 +655,7 @@ function renderStats(main){
       <div class="stat-title">Per regione</div>
       ${Object.keys(byRegion).sort((a,b)=>byRegion[b]-byRegion[a]).map(r=>`
         <div class="bar-row">
-          <div class="bar-label">${r}</div>
+          <div class="bar-label">${esc(r)}</div>
           <div class="bar-track"><div class="bar-fill" style="width:${byRegion[r]/maxRegion*100}%;"></div></div>
           <div class="bar-num">${byRegion[r]}</div>
         </div>`).join('')}
@@ -635,14 +682,14 @@ async function pairDish(){
   const resultEl = document.getElementById('pair-result');
   resultEl.innerHTML = `<div class="ai-box"><span class="ai-loading">Il sommelier sta scegliendo…</span></div>`;
 
-  const cellar = state.wines.filter(w=>w.status==='in_cantina').map(w=>({
+  const cellar = live().filter(w=>w.status==='in_cantina').map(w=>({
     id:w.id,name:w.name,producer:w.producer,type:w.type,region:w.region,priority:w.priority,color:w.color
   }));
 
   try{
     const text = await callAI('pair', {dish, cellar});
     let parsed;
-    try{ parsed = JSON.parse(text.replace(/```json|```/g,'').trim()); }catch(e){ parsed = null; }
+    try{ const m = text.match(/\{[\s\S]*\}/); parsed = JSON.parse(m ? m[0] : text); }catch(e){ parsed = null; }
 
     if(parsed && parsed.suggestions){
       resultEl.innerHTML = parsed.suggestions.map(s=>{
@@ -651,8 +698,8 @@ async function pairDish(){
         return `<div class="card" onclick="openDetail('${w.id}')" style="margin-top:12px;">
           <div class="prestige">${PRESTIGE_ICON[w.prestige]||''}</div>
           <div class="info">
-            <div class="name">${w.name}</div>
-            <div class="meta">${s.reason}</div>
+            <div class="name">${esc(w.name)}</div>
+            <div class="meta">${esc(s.reason)}</div>
           </div>
         </div>`;
       }).join('');
@@ -668,22 +715,23 @@ async function pairDish(){
 function openDetail(id){
   activeWineId = id;
   const w = byId(id);
+  if(!w) return;
   const el = document.getElementById('detail-content');
 
   const starsHTML = [1,2,3,4,5].map(n=>`<span class="${n<=(w.personalRating||0)?'on':''}" onclick="setRating('${id}',${n})">★</span>`).join('');
 
   el.innerHTML = `
-    <h2>${w.name}</h2>
-    <div class="sheet-sub">${w.producer||''}${w.label?' · '+w.label:''}${w.year?' · '+w.year:''}</div>
+    <h2>${esc(w.name)}</h2>
+    <div class="sheet-sub">${esc(w.producer||'')}${w.label?' · '+esc(w.label):''}${w.year?' · '+esc(w.year):''}</div>
 
     <div class="stars">${starsHTML}</div>
 
-    <div class="field-row"><span class="label">Tipologia</span><span class="val">${w.type||'—'}</span></div>
-    <div class="field-row"><span class="label">Regione</span><span class="val">${w.region||'—'}</span></div>
+    <div class="field-row"><span class="label">Tipologia</span><span class="val">${esc(w.type||'—')}</span></div>
+    <div class="field-row"><span class="label">Regione</span><span class="val">${esc(w.region||'—')}</span></div>
     ${w.priority?`<div class="field-row"><span class="label">Priorità</span><span class="val">${PRIORITY_LABEL[w.priority]}</span></div>`:''}
     <div class="field-row"><span class="label">Prestigio</span><span class="val">${PRESTIGE_ICON[w.prestige]} ${w.prestige}</span></div>
-    ${w.temp?`<div class="field-row"><span class="label">Temperatura</span><span class="val">${w.temp}</span></div>`:''}
-    ${w.notes?`<div class="field-row"><span class="label">Note</span><span class="val">${w.notes}</span></div>`:''}
+    ${w.temp?`<div class="field-row"><span class="label">Temperatura</span><span class="val">${esc(w.temp)}</span></div>`:''}
+    ${w.notes?`<div class="field-row"><span class="label">Note</span><span class="val">${esc(w.notes)}</span></div>`:''}
     ${w.consumedDate?`<div class="field-row"><span class="label">Aperta il</span><span class="val">${new Date(w.consumedDate).toLocaleDateString('it-IT')}</span></div>`:''}
 
     <div class="ai-box" id="ai-desc-box">
@@ -702,7 +750,7 @@ function openDetail(id){
     callAI('describe', {wine:{name:w.name,producer:w.producer,label:w.label,year:w.year,type:w.type,region:w.region,notes:w.notes}})
       .then(text=>{
         w.aiDescription = text.trim();
-        saveState();
+        commit(w);
         const box = document.getElementById('ai-desc-text');
         if(box) box.textContent = w.aiDescription;
       })
@@ -715,14 +763,14 @@ function openDetail(id){
 function setRating(id, n){
   const w = byId(id);
   w.personalRating = w.personalRating===n ? 0 : n;
-  saveState();
+  commit(w);
   openDetail(id);
 }
 function markConsumed(id){
   const w = byId(id);
   w.status = 'consumato';
   w.consumedDate = new Date().toISOString();
-  saveState();
+  commit(w);
   closeSheet('detail-overlay');
   render();
   toast(`${w.name} segnata come aperta`);
@@ -730,8 +778,8 @@ function markConsumed(id){
 function deleteWine(id){
   const w = byId(id);
   if(!confirm(`Eliminare "${w.name}" definitivamente?`)) return;
-  state.wines = state.wines.filter(x=>x.id!==id);
-  saveState();
+  w.deleted = true;          // tombstone: così l'eliminazione arriva anche agli altri dispositivi
+  commit(w);
   closeSheet('detail-overlay');
   render();
   toast('Bottiglia eliminata');
@@ -742,6 +790,7 @@ function closeSheet(overlayId){
 
 /* ---------- ADD WINE ---------- */
 function openAddSheet(){
+  if(!state.wines.length){ toast('Aspetta il caricamento della cantina'); return; }
   ['f-name','f-producer','f-label','f-year','f-region','f-type','f-temp','f-notes'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('f-color').value='rosso';
   document.getElementById('f-priority').value='media';
@@ -755,21 +804,43 @@ function openAddSheet(){
   document.getElementById('recognize-status').style.display='none';
   document.getElementById('add-overlay').classList.add('open');
 }
-function handlePhoto(event, slot){
+// Le foto da iPhone pesano 3-5 MB: due foto superano il limite di 6 MB delle function Netlify.
+// Le riduciamo a max 1280px (JPEG) prima dell'invio: restano leggibilissime per l'etichetta.
+async function downscaleImage(file, maxSide = 1280, quality = 0.82){
+  const url = URL.createObjectURL(file);
+  try{
+    const img = await new Promise((resolve, reject) => {
+      const i = new Image();
+      i.onload = () => resolve(i);
+      i.onerror = () => reject(new Error('immagine non leggibile'));
+      i.src = url;
+    });
+    const scale = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight));
+    const w = Math.max(1, Math.round(img.naturalWidth * scale));
+    const h = Math.max(1, Math.round(img.naturalHeight * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+    return canvas.toDataURL('image/jpeg', quality);
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+async function handlePhoto(event, slot){
   const file = event.target.files[0];
   if(!file) return;
-  const reader = new FileReader();
-  reader.onload = () => {
-    const dataUrl = reader.result;
-    photoData[slot] = { data: dataUrl.split(',')[1], mediaType: file.type };
+  try{
+    const dataUrl = await downscaleImage(file);
+    photoData[slot] = { data: dataUrl.split(',')[1], mediaType: 'image/jpeg' };
     const slotEl = document.getElementById('photo-'+slot);
     slotEl.querySelector('#photo-'+slot+'-label').style.display='none';
     let img = slotEl.querySelector('img');
     if(!img){ img = document.createElement('img'); slotEl.prepend(img); }
     img.src = dataUrl;
     if(photoData.front || photoData.back) document.getElementById('recognize-btn').style.display='block';
-  };
-  reader.readAsDataURL(file);
+  }catch(e){
+    toast('Non riesco a leggere la foto, riprova');
+  }
 }
 async function recognizeLabel(){
   const images = [photoData.front, photoData.back].filter(Boolean);
@@ -777,7 +848,8 @@ async function recognizeLabel(){
   document.getElementById('recognize-status').style.display='block';
   try{
     const text = await callAI('recognize', {images});
-    const data = JSON.parse(text.replace(/```json|```/g,'').trim());
+    const m = text.match(/\{[\s\S]*\}/);
+    const data = JSON.parse(m ? m[0] : text);
     if(data.name) document.getElementById('f-name').value = data.name;
     if(data.producer) document.getElementById('f-producer').value = data.producer;
     if(data.label) document.getElementById('f-label').value = data.label;
@@ -797,7 +869,7 @@ function saveNewWine(){
   if(!name){ toast('Il nome è obbligatorio'); return; }
   const yearVal = document.getElementById('f-year').value.trim();
   const w = {
-    id: 'w_'+Date.now(),
+    id: 'w_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),
     name,
     producer: document.getElementById('f-producer').value.trim(),
     label: document.getElementById('f-label').value.trim(),
@@ -816,7 +888,7 @@ function saveNewWine(){
     consumedDate: null
   };
   state.wines.push(w);
-  saveState();
+  commit(w);
   closeSheet('add-overlay');
   currentTab = w.color;
   render();
@@ -846,7 +918,7 @@ async function sendChat(){
     const w = chatContextWineId ? byId(chatContextWineId) : null;
     const payload = w
       ? {question:q, wine:{name:w.name,producer:w.producer,year:w.year,type:w.type,region:w.region,notes:w.notes}}
-      : {question:q, cellar: state.wines.filter(x=>x.status==='in_cantina').map(x=>({name:x.name,type:x.type,region:x.region,priority:x.priority}))};
+      : {question:q, cellar: live().filter(x=>x.status==='in_cantina').map(x=>({name:x.name,type:x.type,region:x.region,priority:x.priority}))};
     const text = await callAI('sommelier', payload);
     updateChatMsg(loadingId, text.trim());
   }catch(e){
@@ -879,7 +951,8 @@ async function callAI(mode, payload){
   });
   if(res.status === 401){
     localStorage.removeItem(PIN_KEY);
-    showPinGate('PIN scaduto o errato — inseriscilo di nuovo.');
+    setSyncStatus('pin');
+    showPinGate('PIN non valido — inseriscilo di nuovo.');
     throw new Error('PIN richiesto');
   }
   if(!res.ok){
@@ -908,77 +981,172 @@ function hidePinGate(){
   document.getElementById('pin-gate').classList.remove('open');
 }
 async function submitPin(){
-  const val = document.getElementById('pin-input').value.trim();
-  if(!val){ return; }
+  const input = document.getElementById('pin-input');
+  const val = input.value.trim();
+  if(!val) return;
   localStorage.setItem(PIN_KEY, val);
-  const ok = await pullFromCloud(true);
-  if(ok === false){
-    localStorage.removeItem(PIN_KEY);
-    showPinGate('PIN errato, riprova.');
-    return;
+  input.value = '';
+  setSyncStatus('init');
+  await sync();   // se il PIN è giusto la sync nasconde il gate, altrimenti lo riapre con l'errore
+}
+
+/* ---------- Stato sync (pallino in alto + Impostazioni) ---------- */
+const SYNC_LABEL = {
+  init:    'Connessione al cloud…',
+  synced:  'Sincronizzato con il cloud',
+  pending: 'Modifiche in attesa di sincronizzazione',
+  offline: 'Cloud non raggiungibile — le modifiche restano su questo telefono e partono appena torni online',
+  pin:     'PIN richiesto',
+  error:   'Errore di sincronizzazione'
+};
+function setSyncStatus(s, detail){
+  syncStatus = s;
+  syncDetail = detail || '';
+  const dot = document.getElementById('sync-dot');
+  if(dot){
+    dot.className = s;
+    dot.title = SYNC_LABEL[s] + (syncDetail ? ' — ' + syncDetail : '');
   }
-  hidePinGate();
-  render();
+  if(!state.wines.length) render();   // aggiorna il messaggio dello stato vuoto
 }
 
 /* ---------- Cloud sync (Netlify Blobs) ---------- */
-async function pullFromCloud(isVerification){
-  try{
-    const res = await fetch('/.netlify/functions/data', { headers: pinHeaders() });
-    if(res.status === 401){
-      if(!isVerification) showPinGate('PIN richiesto per accedere alla cantina.');
-      return false;
-    }
-    if(!res.ok) return null;
-    const { data } = await res.json();
-    if(data && data.wines){
-      if(!state.wines.length || (data.updatedAt||0) >= (state.updatedAt||0)){
-        state = data;
-        localStorage.setItem(LS_KEY, JSON.stringify(state));
-      }
-    } else if(isVerification){
-      // primo avvio in assoluto: nessun dato cloud ancora — carica i semi e pubblicali
-      await pushToCloud();
-    }
-    return true;
-  }catch(e){
-    cloudReady = false;
-    return null;
-  }
-}
-async function pushToCloud(){
+async function api(method, body){
   try{
     const res = await fetch('/.netlify/functions/data', {
-      method:'PUT',
-      headers:{'Content-Type':'application/json', ...pinHeaders()},
-      body: JSON.stringify(state)
+      method,
+      headers: { 'Content-Type': 'application/json', ...pinHeaders() },
+      body: body ? JSON.stringify(body) : undefined,
+      cache: 'no-store'
     });
-    if(res.status === 401){
-      localStorage.removeItem(PIN_KEY);
-      showPinGate('PIN scaduto o errato — inseriscilo di nuovo per continuare a sincronizzare.');
-      return false;
-    }
-    cloudReady = res.ok;
-    return res.ok;
+    let json = null;
+    try{ json = await res.json(); }catch(e){}
+    return { status: res.status, json };
   }catch(e){
-    cloudReady = false;
-    return false;
+    return { status: 0, json: null };   // rete assente
+  }
+}
+
+// Fonde i vini locali con quelli del cloud: per ogni id vince la modifica più recente.
+// A parità di timestamp vince il cloud (fonte di verità).
+function mergeWines(local, remote){
+  const map = new Map();
+  remote.forEach(w => map.set(w.id, w));
+  let localNewer = false;
+  local.forEach(w => {
+    const r = map.get(w.id);
+    if(!r || (w.modifiedAt || 0) > (r.modifiedAt || 0)){
+      map.set(w.id, w);
+      localNewer = true;
+    }
+  });
+  return { wines: [...map.values()], localNewer };
+}
+
+function scheduleSync(delay = 700){
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(sync, delay);
+}
+function syncNow(){
+  toast('Sincronizzo…');
+  scheduleSync(0);
+}
+
+async function sync(){
+  if(syncing){ syncAgain = true; return; }
+  syncing = true;
+  lastSyncTry = Date.now();
+  try{
+    for(let attempt = 0; attempt < 4; attempt++){
+      // 1) LEGGI sempre prima il cloud
+      const g = await api('GET');
+      if(g.status === 401){
+        setSyncStatus('pin');
+        showPinGate(getPin() ? 'PIN errato, riprova.' : 'Inserisci il PIN per aprire la cantina.');
+        return;
+      }
+      if(g.status === 0){ setSyncStatus('offline'); return; }
+      if(g.status !== 200 || !g.json){
+        setSyncStatus('error', `funzione dati non raggiungibile (HTTP ${g.status})`);
+        return;
+      }
+      hidePinGate();
+      serverPinRequired = !!g.json.pinRequired;
+      const remote = g.json.data;
+      const before = JSON.stringify(state.wines);
+
+      // 2) FONDI cloud e dati locali
+      let baseRev = 0, needsPush = false;
+      if(!remote){
+        // cloud confermato vuoto → solo ora è lecito caricare i vini di partenza
+        if(!state.wines.length) state.wines = buildSeed();
+        needsPush = true;
+      } else {
+        const merged = mergeWines(state.wines, remote.wines || []);
+        state.wines = merged.wines;
+        needsPush = merged.localNewer || state.dirty;
+        baseRev = remote.rev || 0;
+      }
+      cloudKnown = true;
+      const changed = JSON.stringify(state.wines) !== before;
+
+      if(!needsPush){
+        state.rev = baseRev; state.dirty = false; state.lastSyncAt = Date.now();
+        persistLocal();
+        if(changed && currentTab !== 'abbina') render();
+        setSyncStatus('synced');
+        return;
+      }
+
+      // 3) SCRIVI indicando su quale revisione abbiamo lavorato
+      const seq = state.changeSeq;
+      persistLocal();
+      const p = await api('PUT', { baseRev, state: { wines: state.wines } });
+      if(p.status === 200 && p.json && p.json.ok){
+        state.rev = p.json.rev; state.lastSyncAt = Date.now();
+        state.dirty = state.changeSeq !== seq;   // altre modifiche arrivate durante il salvataggio?
+        persistLocal();
+        if(currentTab !== 'abbina') render();
+        setSyncStatus(state.dirty ? 'pending' : 'synced');
+        if(state.dirty) scheduleSync();
+        return;
+      }
+      if(p.status === 409) continue;   // un altro dispositivo ha salvato nel frattempo: rileggi e rifondi
+      if(p.status === 401){
+        setSyncStatus('pin');
+        showPinGate('PIN errato, riprova.');
+        return;
+      }
+      if(p.status === 0){ setSyncStatus('offline'); return; }
+      setSyncStatus('error', (p.json && p.json.error) || `salvataggio non riuscito (HTTP ${p.status})`);
+      return;
+    }
+    setSyncStatus('error', 'troppi conflitti consecutivi, riprova fra poco');
+  } finally {
+    syncing = false;
+    if(syncAgain){ syncAgain = false; scheduleSync(300); }
   }
 }
 
 /* ---------- SETTINGS / BACKUP ---------- */
 function openSettings(){
-  document.getElementById('settings-count').textContent = state.wines.filter(w=>w.status==='in_cantina').length + ' in cantina, ' + state.wines.filter(w=>w.status==='consumato').length + ' aperte';
-  document.getElementById('sync-status').textContent = cloudReady ? 'Sync cloud attiva (Netlify Blobs) — dati richiamabili da qualsiasi dispositivo' : 'Sync cloud non raggiungibile ora — dati salvati solo su questo telefono, riprova più tardi';
+  const l = live();
+  document.getElementById('settings-count').textContent =
+    l.filter(w=>w.status==='in_cantina').length + ' in cantina, ' + l.filter(w=>w.status==='consumato').length + ' aperte';
+  document.getElementById('sync-status').textContent = SYNC_LABEL[syncStatus] + (syncDetail ? ' — ' + syncDetail : '');
+  document.getElementById('settings-lastsync').textContent =
+    state.lastSyncAt ? new Date(state.lastSyncAt).toLocaleString('it-IT', {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'}) : 'mai';
+  document.getElementById('settings-version').textContent = APP_VERSION;
+  document.getElementById('pin-warning').style.display = (serverPinRequired === false) ? 'block' : 'none';
   document.getElementById('settings-overlay').classList.add('open');
 }
 function exportBackup(){
-  const blob = new Blob([JSON.stringify(state, null, 2)], {type:'application/json'});
+  const payload = { app: 'mycave', exportedAt: new Date().toISOString(), wines: live() };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  const dateStr = new Date().toISOString().slice(0,10);
   a.href = url;
-  a.download = `mycave-backup-${dateStr}.json`;
+  a.download = `mycave-backup-${new Date().toISOString().slice(0,10)}.json`;
   document.body.appendChild(a);
   a.click();
   a.remove();
@@ -987,15 +1155,23 @@ function exportBackup(){
 }
 function importBackup(event){
   const file = event.target.files[0];
+  event.target.value = '';
   if(!file) return;
   const reader = new FileReader();
   reader.onload = () => {
     try{
       const imported = JSON.parse(reader.result);
       if(!imported.wines || !Array.isArray(imported.wines)) throw new Error('formato non valido');
-      if(!confirm(`Sostituire i dati attuali con il backup (${imported.wines.length} bottiglie)? Questa azione non si può annullare.`)) return;
-      state = imported;
-      saveState();
+      const incoming = imported.wines.filter(w => w && w.id && !w.deleted);
+      if(!incoming.length) throw new Error('nessun vino nel file');
+      if(!confirm(`Importare ${incoming.length} bottiglie dal backup?\nLe bottiglie con lo stesso ID vengono riportate alla versione del backup; le altre restano dove sono.`)) return;
+      const now = Date.now();
+      incoming.forEach(w => {
+        const clean = { ...w, modifiedAt: now };
+        const i = state.wines.findIndex(x => x.id === w.id);
+        if(i >= 0) state.wines[i] = clean; else state.wines.push(clean);
+      });
+      commit();
       closeSheet('settings-overlay');
       render();
       toast('Backup importato');
@@ -1007,22 +1183,31 @@ function importBackup(event){
 }
 
 /* ---------- boot ---------- */
-async function boot(){
-  loadState();
+function boot(){
+  loadLocal();
   render();
   if('serviceWorker' in navigator){
-    navigator.serviceWorker.register('/sw.js').catch(()=>{});
+    // Autoaggiornamento: se il service worker cambia (nuovo deploy), l'app si ricarica da sola.
+    const hadController = !!navigator.serviceWorker.controller;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if(!hadController) return;                       // primo install: niente da ricaricare
+      if(document.querySelector('.sheet-overlay.open')){ toast('Nuova versione pronta: parte alla prossima apertura'); return; }
+      location.reload();
+    });
+    navigator.serviceWorker.register('/sw.js').then(reg => {
+      document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'visible') reg.update().catch(()=>{}); });
+      reg.update().catch(()=>{});
+    }).catch(()=>{});
   }
-  if(getPin()){
-    const ok = await pullFromCloud(false);
-    if(ok) render();
-  } else {
-    // prova comunque: se MYCAVE_PIN non è impostato lato server, l'endpoint è aperto
-    const ok = await pullFromCloud(true);
-    if(ok) render();
-  }
+  window.addEventListener('online', () => scheduleSync(300));
+  document.addEventListener('visibilitychange', () => {
+    if(document.visibilityState === 'visible' && Date.now() - lastSyncTry > 15000) scheduleSync(200);
+  });
+  setSyncStatus('init');
+  sync();
 }
 boot();
+
 </script>
 </body>
 </html>
