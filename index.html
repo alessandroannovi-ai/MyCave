@@ -142,7 +142,7 @@
   }
   .sheet-overlay.open{display:flex;}
   .sheet{
-    background:var(--bg-raised);width:100%;max-height:88vh;
+    background:var(--bg-raised);width:100%;max-height:calc(100vh - 60px - var(--safe-top));max-height:calc(100dvh - 60px - var(--safe-top));
     border-radius:var(--sheet-radius) var(--sheet-radius) 0 0;
     padding:10px 20px calc(24px + var(--safe-bottom));overflow-y:auto;
     animation:slideup .25s ease-out;
@@ -151,7 +151,8 @@
   .sheet-handle{width:36px;height:4px;background:var(--line);border-radius:3px;margin:6px auto 16px;}
   .sheet h2{font-size:24px;margin:0 0 2px;font-weight:600;}
   .sheet .sheet-sub{font-size:13px;color:var(--gold-dim);margin-bottom:16px;}
-  .sheet-close{position:absolute;top:calc(var(--safe-top) + 14px);right:20px;background:var(--bg-card);border:none;color:var(--cream-dim);width:30px;height:30px;border-radius:50%;font-size:15px;}
+  /* La X resta sempre visibile: sticky dentro il foglio che scorre */
+  .sheet-close{position:sticky;top:4px;float:right;z-index:5;margin:2px -6px 0 8px;background:var(--bg-card);border:none;color:var(--cream-dim);width:40px;height:40px;border-radius:50%;font-size:18px;line-height:1;cursor:pointer;-webkit-tap-highlight-color:transparent;box-shadow:0 0 0 1px var(--line);}
 
   .field-row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px;}
   .field-row .label{color:var(--cream-dim);}
@@ -164,6 +165,18 @@
   .stars{display:flex;gap:6px;margin:10px 0;}
   .stars span{font-size:24px;color:var(--line);}
   .stars span.on{color:var(--gold);}
+  .stars span{cursor:pointer;padding:2px;}
+  .mini-stars{color:var(--gold);font-size:13px;letter-spacing:1px;margin-top:3px;}
+  .mini-stars .off{color:var(--line);}
+  .tag-reorder{display:inline-block;font-size:10px;text-transform:uppercase;letter-spacing:1px;padding:2px 7px;border-radius:10px;border:1px solid var(--gold-dim);color:var(--gold);margin-left:6px;}
+  .tag-reorder.no{color:var(--cream-dim);border-color:var(--line);}
+  .chips{display:flex;gap:8px;margin:6px 0 4px;flex-wrap:wrap;}
+  .opt{flex:1;min-width:70px;padding:10px 8px;border-radius:12px;border:1px solid var(--line);background:var(--bg-card);color:var(--cream-dim);font:inherit;font-size:13px;cursor:pointer;}
+  .opt.on{border-color:var(--gold);color:var(--gold);}
+  .rate-block{margin:6px 0 14px;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:var(--bg-card);}
+  .rate-title{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--gold-dim);}
+  .forminput.ai-guess{box-shadow:0 0 0 1px var(--gold-dim);}
+  .seg{display:flex;gap:8px;margin:0 0 12px;}
 
   .btn{
     width:100%;padding:13px;border-radius:12px;border:none;font-family:'Outfit';
@@ -216,6 +229,51 @@
     z-index:100;font-weight:500;opacity:0;transition:opacity .2s;pointer-events:none;
   }
   .toast.show{opacity:1;}
+
+  /* ===== RITOCCO GRAFICO (2.1): solo aspetto, nessuna logica. Per tornare al look precedente basta togliere questo blocco. ===== */
+  :root{--gold:#d1b25a;--hair:rgba(255,255,255,.07);--bg-card:#1b1a1f;}
+  html{background:#0b0b0d;}
+  body{background:radial-gradient(130% 55% at 50% -8%, #1d1722 0%, #0b0b0d 62%) fixed;}
+  header{position:relative;padding-bottom:14px;}
+  header::after{content:'';position:absolute;left:20px;right:20px;bottom:0;height:1px;background:linear-gradient(90deg,rgba(209,178,90,.5),rgba(209,178,90,0) 75%);}
+  header h1{font-size:32px;font-weight:500;letter-spacing:.6px;line-height:1.05;}
+  header .subtitle{font-size:10px;letter-spacing:3px;}
+  #tabs{padding-top:12px;}
+  .tab{background:transparent;border:1px solid var(--hair);font-size:12.5px;letter-spacing:.4px;padding:7px 14px;}
+  .tab.active{background:rgba(209,178,90,.12);border-color:rgba(209,178,90,.55);color:var(--gold);}
+  .chip{background:transparent;border:1px solid var(--hair);letter-spacing:.4px;}
+  .chip.active{background:rgba(155,35,53,.3);border-color:rgba(200,70,90,.6);color:#f4cfd5;}
+  .region-label{display:flex;align-items:center;gap:12px;letter-spacing:2.6px;}
+  .region-label::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--hair),transparent);}
+  .card{position:relative;background:linear-gradient(180deg,#1e1d22 0%,#18171b 100%);border:1px solid var(--hair);border-radius:18px;padding:15px 16px 15px 20px;box-shadow:0 1px 0 rgba(255,255,255,.03) inset,0 10px 22px -14px rgba(0,0,0,.9);transition:transform .12s ease,border-color .2s;}
+  .card:active{transform:scale(.985);border-color:rgba(209,178,90,.35);}
+  .card::before{content:'';position:absolute;left:0;top:14px;bottom:14px;width:3px;border-radius:0 3px 3px 0;background:var(--wine,#a02a3c);}
+  .card.c-rosso{--wine:#a02a3c;} .card.c-bianco{--wine:#d9c27a;} .card.c-rosato{--wine:#d98f9b;} .card.c-bollicina{--wine:#bfd0a8;}
+  .card .name{font-size:18px;font-weight:600;letter-spacing:.2px;}
+  .card .badge{font-size:9px;letter-spacing:.9px;padding:4px 8px;border-radius:999px;font-weight:600;white-space:normal;text-align:center;line-height:1.25;max-width:80px;}
+  #fab{width:54px;height:54px;font-size:26px;font-weight:300;bottom:calc(86px + var(--safe-bottom));background:linear-gradient(145deg,#e3c76f,#b8973f);box-shadow:0 12px 28px -8px rgba(209,178,90,.5),0 1px 0 rgba(255,255,255,.3) inset;transition:transform .12s;}
+  #fab:active{transform:scale(.94);}
+  #bottomnav{background:rgba(11,11,13,.82);-webkit-backdrop-filter:blur(18px) saturate(1.2);backdrop-filter:blur(18px) saturate(1.2);border-top:1px solid var(--hair);}
+  #bottomnav button{position:relative;font-size:9.5px;letter-spacing:.9px;text-transform:uppercase;gap:4px;}
+  #bottomnav button .ic{height:22px;display:flex;align-items:center;justify-content:center;font-size:18px;}
+  #bottomnav button.active::before{content:'';position:absolute;top:-9px;left:50%;width:18px;height:2px;margin-left:-9px;border-radius:2px;background:var(--gold);box-shadow:0 0 10px rgba(209,178,90,.6);}
+  .sheet-overlay{background:rgba(5,5,7,.62);-webkit-backdrop-filter:blur(5px);backdrop-filter:blur(5px);}
+  .sheet{background:linear-gradient(180deg,#1b1a1f,#141317);border-top:1px solid var(--hair);box-shadow:0 -20px 50px -10px rgba(0,0,0,.6);}
+  .sheet-handle{width:40px;background:rgba(255,255,255,.14);}
+  .sheet h2{font-size:30px;font-weight:500;letter-spacing:.3px;line-height:1.1;}
+  .sheet-close{background:rgba(255,255,255,.07);box-shadow:none;}
+  .btn{border-radius:14px;padding:14px;letter-spacing:.4px;transition:transform .12s;}
+  .btn:active{transform:scale(.985);}
+  .btn-primary{background:linear-gradient(145deg,#e3c76f,#bf9d42);color:#16130a;}
+  input.forminput,select.forminput,textarea.forminput{font-size:16px;border-color:var(--hair);}
+  input.forminput:focus,select.forminput:focus,textarea.forminput:focus{outline:none;border-color:rgba(209,178,90,.6);}
+  .stat-block{background:linear-gradient(180deg,#1e1d22,#18171b);border-color:var(--hair);border-radius:18px;}
+  .stat-num{font-weight:500;font-size:42px;}
+  .bar-fill{background:linear-gradient(90deg,#b8973f,#e3c76f);}
+  .rate-block{background:linear-gradient(180deg,#1e1d22,#18171b);border-color:var(--hair);border-radius:16px;}
+  .card .badge{max-width:98px;padding:4px 10px;}
+  .seg .opt{flex:0 0 auto;min-width:0;padding:8px 14px;border-radius:999px;font-size:12.5px;letter-spacing:.3px;}
+  .photo-slot{aspect-ratio:auto;height:104px;border-radius:16px;border:1.5px dashed rgba(209,178,90,.35);color:var(--gold);font-size:13px;letter-spacing:.4px;}
 </style>
 </head>
 <body>
@@ -278,19 +336,19 @@
     <button class="sheet-close" onclick="closeSheet('add-overlay')">✕</button>
     <div class="sheet-handle"></div>
     <h2>Nuova bottiglia</h2>
-    <div class="sheet-sub">Compila a mano o scansiona l'etichetta</div>
+    <div class="sheet-sub">Fotografa l'etichetta: i campi si compilano da soli. I riquadri con bordo oro sono stime dell'AI, controllali.</div>
 
     <div class="photo-row">
       <div class="photo-slot" id="photo-front">
-        <span id="photo-front-label">Fronte</span>
+        <span id="photo-front-label">＋ Foto fronte</span>
         <input type="file" accept="image/*" capture="environment" onchange="handlePhoto(event,'front')">
       </div>
       <div class="photo-slot" id="photo-back">
-        <span id="photo-back-label">Retro</span>
+        <span id="photo-back-label">＋ Foto retro</span>
         <input type="file" accept="image/*" capture="environment" onchange="handlePhoto(event,'back')">
       </div>
     </div>
-    <button class="btn btn-secondary" id="recognize-btn" onclick="recognizeLabel()" style="display:none;">Riconosci etichetta con AI</button>
+    <button class="btn btn-secondary" id="recognize-btn" onclick="recognizeLabel()" style="display:none;">Rileggi etichetta con AI</button>
     <div id="recognize-status" class="ai-loading" style="display:none;margin-top:8px;">Lettura etichetta in corso…</div>
 
     <label class="formlabel">Nome</label>
@@ -383,7 +441,7 @@
    MYCAVE — stato, dati, rendering, AI
    ========================================================= */
 
-const APP_VERSION = '2.0 · 27 ott 2026';
+const APP_VERSION = '2.1 · 27 ott 2026';
 const LS_KEY = 'mycave_v2';   // copia locale (cache) + stato di sincronizzazione
 const PIN_KEY = 'mycave_pin';
 
@@ -598,7 +656,7 @@ function setPriorityFilter(p){
   render();
 }
 function cardHTML(w){
-  return `<div class="card" onclick="openDetail('${w.id}')">
+  return `<div class="card c-${w.color||'rosso'}" onclick="openDetail('${w.id}')">
     <div class="prestige">${PRESTIGE_ICON[w.prestige]||''}</div>
     <div class="info">
       <div class="name">${esc(w.name)}${w.year?` <span style="color:var(--cream-dim);font-size:14px;">'${String(w.year).slice(-2)}</span>`:''}</div>
@@ -609,20 +667,33 @@ function cardHTML(w){
 }
 
 function renderConsumati(main){
-  const list = live().filter(w=>w.status==='consumato').sort((a,b)=>(b.consumedDate||'').localeCompare(a.consumedDate||''));
-  if(list.length===0){
+  const all = live().filter(w=>w.status==='consumato');
+  if(all.length===0){
     main.innerHTML = `<div class="empty-state"><div class="icon">⟲</div><p>Nessuna bottiglia ancora segnata come aperta.</p></div>`;
     return;
   }
-  main.innerHTML = `<div class="region-label">Storico bottiglie aperte</div>` + list.map(w=>`
-    <div class="card" onclick="openDetail('${w.id}')">
+  const byDate = (a,b)=>(b.consumedDate||'').localeCompare(a.consumedDate||'');
+  let list = all.slice();
+  if(storicoSort==='voto') list.sort((a,b)=>(b.personalRating||0)-(a.personalRating||0) || byDate(a,b));
+  else if(storicoSort==='riordino'){ list = list.filter(w=>w.reorder==='si').sort((a,b)=>(b.personalRating||0)-(a.personalRating||0) || byDate(a,b)); }
+  else list.sort(byDate);
+  const seg = [['recenti','Recenti'],['voto','Miglior voto'],['riordino','Da riordinare']]
+    .map(([v,l])=>`<button class="opt ${storicoSort===v?'on':''}" onclick="setStoricoSort('${v}')">${l}</button>`).join('');
+  const stars = n => n ? `<div class="mini-stars">${'★'.repeat(n)}<span class="off">${'★'.repeat(5-n)}</span></div>` : '';
+  const reorderTag = w => w.reorder==='si' ? '<span class="tag-reorder">riordina</span>' : (w.reorder==='no' ? '<span class="tag-reorder no">no</span>' : '');
+  main.innerHTML = `<div class="region-label">Storico bottiglie aperte</div><div class="seg">${seg}</div>` +
+    (list.length ? list.map(w=>`
+    <div class="card c-${w.color||'rosso'}" onclick="openDetail('${w.id}')">
       <div class="prestige">${PRESTIGE_ICON[w.prestige]||''}</div>
       <div class="info">
-        <div class="name">${esc(w.name)}${w.year?` '${String(w.year).slice(-2)}`:''}</div>
+        <div class="name">${esc(w.name)}${w.year?` '${String(w.year).slice(-2)}`:''}${reorderTag(w)}</div>
         <div class="meta">${esc(w.producer||'')} ${w.consumedDate?'· aperta il '+new Date(w.consumedDate).toLocaleDateString('it-IT'):''}</div>
+        ${stars(w.personalRating||0)}
       </div>
-    </div>`).join('');
+    </div>`).join('') : `<div class="empty-state"><p>Nessun vino segnato "da riordinare". Aprine uno dal dettaglio e rispondi a "Lo riordineresti?".</p></div>`);
 }
+let storicoSort = 'recenti';
+function setStoricoSort(v){ storicoSort = v; render(); }
 
 function renderStats(main){
   const active = live().filter(w=>w.status==='in_cantina');
@@ -663,6 +734,7 @@ function renderStats(main){
     <div class="stat-block">
       <div class="stat-title">Bottiglie aperte (storico)</div>
       <div class="stat-num">${consumed.length}</div>
+      ${(()=>{ const r = consumed.filter(w=>w.personalRating>0); return r.length ? `<div class="stat-title" style="margin-top:10px;">Voto medio (${r.length} votate) · da riordinare: ${consumed.filter(w=>w.reorder==='si').length}</div><div class="mini-stars" style="font-size:18px;">${(r.reduce((s,w)=>s+w.personalRating,0)/r.length).toFixed(1)} ★</div>` : ''; })()}
     </div>
   `;
 }
@@ -695,7 +767,7 @@ async function pairDish(){
       resultEl.innerHTML = parsed.suggestions.map(s=>{
         const w = byId(s.id);
         if(!w) return '';
-        return `<div class="card" onclick="openDetail('${w.id}')" style="margin-top:12px;">
+        return `<div class="card c-${w.color||'rosso'}" onclick="openDetail('${w.id}')" style="margin-top:12px;">
           <div class="prestige">${PRESTIGE_ICON[w.prestige]||''}</div>
           <div class="info">
             <div class="name">${esc(w.name)}</div>
@@ -724,7 +796,17 @@ function openDetail(id){
     <h2>${esc(w.name)}</h2>
     <div class="sheet-sub">${esc(w.producer||'')}${w.label?' · '+esc(w.label):''}${w.year?' · '+esc(w.year):''}</div>
 
-    <div class="stars">${starsHTML}</div>
+    ${w.status==='consumato' ? `
+    <div class="rate-block">
+      <div class="rate-title">Com'era?</div>
+      <div class="stars">${starsHTML}</div>
+      <div class="rate-title" style="margin-top:6px;">Lo riordineresti?</div>
+      <div class="chips">
+        ${[['si','Sì'],['forse','Forse'],['no','No']].map(([v,l])=>`<button class="opt ${w.reorder===v?'on':''}" onclick="setReorder('${id}','${v}')">${l}</button>`).join('')}
+      </div>
+      <div class="rate-title" style="margin-top:8px;">Note di degustazione</div>
+      <textarea class="forminput" id="tasting-note" placeholder="es. ottimo con la carne, tannino ancora vivo" onchange="saveTasting('${id}',this.value)">${esc(w.tastingNote||'')}</textarea>
+    </div>` : ''}
 
     <div class="field-row"><span class="label">Tipologia</span><span class="val">${esc(w.type||'—')}</span></div>
     <div class="field-row"><span class="label">Regione</span><span class="val">${esc(w.region||'—')}</span></div>
@@ -766,14 +848,26 @@ function setRating(id, n){
   commit(w);
   openDetail(id);
 }
+function setReorder(id, v){
+  const w = byId(id);
+  w.reorder = w.reorder===v ? null : v;
+  commit(w);
+  openDetail(id);
+  render();
+}
+function saveTasting(id, text){
+  const w = byId(id);
+  w.tastingNote = text.trim();
+  commit(w);
+}
 function markConsumed(id){
   const w = byId(id);
   w.status = 'consumato';
   w.consumedDate = new Date().toISOString();
   commit(w);
-  closeSheet('detail-overlay');
   render();
-  toast(`${w.name} segnata come aperta`);
+  openDetail(id);                  // resta aperta: così puoi dare subito il voto
+  toast('Segnata come aperta: dai un voto');
 }
 function deleteWine(id){
   const w = byId(id);
@@ -802,7 +896,22 @@ function openAddSheet(){
   document.getElementById('photo-back-label').style.display='block';
   document.getElementById('recognize-btn').style.display='none';
   document.getElementById('recognize-status').style.display='none';
+  recogSeq++;                       // scarta eventuali risposte AI rimaste in volo
+  formTouched.clear();
+  FORM_FIELDS.forEach(id=>document.getElementById(id).classList.remove('ai-guess'));
   document.getElementById('add-overlay').classList.add('open');
+}
+// Campi che l'utente ha toccato a mano: la lettura AI non li sovrascrive mai.
+const FORM_FIELDS = ['f-name','f-producer','f-label','f-year','f-region','f-type','f-temp','f-notes','f-color','f-priority','f-prestige'];
+const formTouched = new Set();
+let recogSeq = 0;
+function initFormTracking(){
+  FORM_FIELDS.forEach(id=>{
+    const el = document.getElementById(id);
+    const touch = ()=>{ formTouched.add(id); el.classList.remove('ai-guess'); };
+    el.addEventListener('input', touch);
+    el.addEventListener('change', touch);
+  });
 }
 // Le foto da iPhone pesano 3-5 MB: due foto superano il limite di 6 MB delle function Netlify.
 // Le riduciamo a max 1280px (JPEG) prima dell'invio: restano leggibilissime per l'etichetta.
@@ -837,7 +946,10 @@ async function handlePhoto(event, slot){
     let img = slotEl.querySelector('img');
     if(!img){ img = document.createElement('img'); slotEl.prepend(img); }
     img.src = dataUrl;
-    if(photoData.front || photoData.back) document.getElementById('recognize-btn').style.display='block';
+    if(photoData.front || photoData.back){
+      document.getElementById('recognize-btn').style.display='block';
+      recognizeLabel();             // parte da sola: niente tasto da premere
+    }
   }catch(e){
     toast('Non riesco a leggere la foto, riprova');
   }
@@ -845,23 +957,43 @@ async function handlePhoto(event, slot){
 async function recognizeLabel(){
   const images = [photoData.front, photoData.back].filter(Boolean);
   if(images.length===0) return;
+  const seq = ++recogSeq;
   document.getElementById('recognize-status').style.display='block';
   try{
     const text = await callAI('recognize', {images});
+    if(seq !== recogSeq) return;     // è arrivata una foto più recente: questa risposta è vecchia
     const m = text.match(/\{[\s\S]*\}/);
     const data = JSON.parse(m ? m[0] : text);
-    if(data.name) document.getElementById('f-name').value = data.name;
-    if(data.producer) document.getElementById('f-producer').value = data.producer;
-    if(data.label) document.getElementById('f-label').value = data.label;
-    if(data.year) document.getElementById('f-year').value = data.year;
-    if(data.region) document.getElementById('f-region').value = data.region;
-    if(data.type) document.getElementById('f-type').value = data.type;
-    if(data.notes) document.getElementById('f-notes').value = data.notes;
-    toast('Etichetta letta — controlla i campi');
+    const put = (id, val, guess) => {
+      if(val === null || val === undefined || val === '') return;
+      if(formTouched.has(id)) return;
+      const el = document.getElementById(id);
+      el.value = String(val);
+      el.classList.toggle('ai-guess', !!guess);
+    };
+    put('f-name', data.name);
+    put('f-producer', data.producer);
+    put('f-label', data.label);
+    if(/^\d{4}$/.test(String(data.year||''))) put('f-year', data.year);
+    put('f-region', data.region ? String(data.region).toLowerCase() : '');
+    put('f-type', data.type);
+    // valori ammessi dai menu: un valore inatteso dall'AI non deve mai rompere il modulo
+    if(['rosso','bianco','rosato','bollicina'].includes(data.color)) put('f-color', data.color, true);
+    if(['alta','media','conservazione'].includes(data.priority)) put('f-priority', data.priority, true);
+    if(['quotidiano','buono','pregiato','icona'].includes(data.prestige)) put('f-prestige', data.prestige, true);
+    put('f-temp', data.temp, true);
+    const parts = [];
+    if(data.notes) parts.push(String(data.notes));
+    const wf = Number(data.window && data.window.from), wt = Number(data.window && data.window.to);
+    if(wf > 1900 && wt >= wf) parts.push(`Finestra di consumo stimata: ${wf}–${wt} (stima AI)`);
+    if(parts.length) put('f-notes', parts.join('\n'), false);
+    toast('Letto dall\'etichetta. I riquadri con bordo oro sono stime: controllali.');
   }catch(e){
-    toast('Non sono riuscito a leggere l\'etichetta');
+    if(seq !== recogSeq) return;
+    if(e && e.message === 'PIN richiesto') return;
+    toast('Non sono riuscito a leggere l\'etichetta: compila a mano o riprova');
   }finally{
-    document.getElementById('recognize-status').style.display='none';
+    if(seq === recogSeq) document.getElementById('recognize-status').style.display='none';
   }
 }
 function saveNewWine(){
@@ -1185,6 +1317,7 @@ function importBackup(event){
 /* ---------- boot ---------- */
 function boot(){
   loadLocal();
+  initFormTracking();
   render();
   if('serviceWorker' in navigator){
     // Autoaggiornamento: se il service worker cambia (nuovo deploy), l'app si ricarica da sola.
